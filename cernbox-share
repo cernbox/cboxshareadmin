@@ -1,0 +1,100 @@
+#!/usr/bin/env python2
+# -*- python -*-
+#
+# The CERNBox Project.
+#
+# Author: 
+# License: AGPL
+#
+#$Id: $
+#
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Perform internal setup of the environment.
+# This is a Copy/Paste logic which must stay in THIS file
+def standardSetup():
+   import sys, os.path
+   # insert the path to cernafs based on the relative position of this scrip inside the service directory tree
+   exeDir = os.path.abspath(os.path.normpath(os.path.dirname(sys.argv[0])))
+   pythonDir = os.path.join(exeDir, 'python' )
+   sys.path.insert(0, pythonDir)
+   import cernbox_utils.setup
+   cernbox_utils.setup.standardSetup(sys.argv[0]) # execute a setup hook
+
+standardSetup()
+del standardSetup
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+config = None
+
+import os, os.path, sys
+
+def main():
+   global config
+   import cernbox_utils.script
+
+   parser=cernbox_utils.script.arg_parser(description='Manipulate shares to known users')
+   subparser = parser.add_subparsers(title='command',dest='cmd')
+
+   add_command = subparser.add_parser('add', help="add share to the system")
+   #add_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
+   add_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry already exists)")
+   add_command.add_argument("path", help="path on storage")
+   add_command.add_argument("sharee", help="share with u:USER or e:GROUP")
+   add_command.add_argument("acl", help="access rights: r (read), rw (read-write)")
+
+   remove_command = subparser.add_parser('remove', help="remove share the system")
+   #remove_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
+   remove_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
+   remove_command.add_argument("path", help="path on storage")
+   remove_command.add_argument("sharee", help="share with u:USER or e:GROUP")
+
+   verify_command = subparser.add_parser('verify', help="verify consistency of shares owned by the given user")
+   verify_command.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
+   verify_command.add_argument("shares_owner", help="specify _all_ to check all users in the system")
+   
+   args = parser.parse_args()
+
+   config = cernbox_utils.script.configure(args.config)
+
+   print "*DB:",config['dbhost']
+   print "*EOS", config['eos_mgm_url']
+
+   if args.cmd == "add":
+      
+      entity,who = parse_sharee(args.sharee)
+
+      path = parse_path(args.path)
+
+      ACL = {'r':'read','rw':'read-write'}
+      ENTITY = {'u':'user','e':'egroup'}
+
+      print "Add",ACL[args.acl],"share for",ENTITY[entity],who,"to tree",args.path
+      if args.nodb:
+        print "Modify storage ACLs only (database entry must already exist)."
+      else:
+        print "Modify storage ACLs and add database entry."
+
+
+   #for k in config:
+   #   print k,config[k]
+
+   print "OK"
+
+def parse_sharee(sharee):
+    try:
+       entity,who = sharee.split(":") # this may also raise ValueError
+       if not entity in ['u','e']:
+          raise ValueError()
+    except ValueError:
+       print >> sys.stderr, "ERROR: specify sharee '%s' in u:USER or e:GROUP format"%args.sharee
+       sys.exit(2)
+    return entity,who
+
+def parse_path(path):
+    if not path.startswith(config['eos_prefix']):
+       print >> sys.stderr, "ERROR: path '%s' should start with '%s'"% (path,config['eos_prefix'])
+       sys.exit(2)
+    return path
+
+if __name__ == "__main__":
+   main()
