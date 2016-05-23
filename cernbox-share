@@ -27,37 +27,50 @@ del standardSetup
 config = None
 
 import os, os.path, sys
+import subprocess
+
+def quote(s):
+   return "'"+s+"'"
+
+# remove duplicates, preserving order
+def squash(seq):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 def main():
    global config
    import cernbox_utils.script
 
-   parser=cernbox_utils.script.arg_parser(description='Manipulate shares to known users')
+   parser=cernbox_utils.script.arg_parser(description='Manipulate regular shares to users and egroups. ')
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
    add_command = subparser.add_parser('add', help="add share to the system")
    #add_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
    add_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry already exists)")
    add_command.add_argument("path", help="path on storage")
-   add_command.add_argument("sharee", help="share with u:USER or e:GROUP")
+   add_command.add_argument("sharee", help="share with u:USER or egroup:GROUP")
    add_command.add_argument("acl", help="access rights: r (read), rw (read-write)")
 
    remove_command = subparser.add_parser('remove', help="remove share the system")
    #remove_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
    remove_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
    remove_command.add_argument("path", help="path on storage")
-   remove_command.add_argument("sharee", help="share with u:USER or e:GROUP")
+   remove_command.add_argument("sharee", help="share with u:USER or egroup:GROUP")
 
    verify_command = subparser.add_parser('verify', help="verify consistency of shares owned by the given user")
    verify_command.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
-   verify_command.add_argument("shares_owner", help="specify _all_ to check all users in the system")
+   verify_command.add_argument("shares_owner", help="specify empty string '' to check all users in the system")
    
    args = parser.parse_args()
 
    config = cernbox_utils.script.configure(args.config)
 
-   print "*DB:",config['dbhost']
-   print "*EOS", config['eos_mgm_url']
+   logger = cernbox_utils.script.getLogger(level=args.loglevel)
+
+
+   logger.info("Using  DB: %s",config['dbhost'])
+   logger.info("Using EOS: %s",config['eos_mgm_url'])
 
    if args.cmd == "add":
       
@@ -74,19 +87,179 @@ def main():
       else:
         print "Modify storage ACLs and add database entry."
 
+   if args.cmd == "verify":
 
-   #for k in config:
-   #   print k,config[k]
+      import pwd
 
-   print "OK"
+      #for k in config:
+      #   print k,config[k]
+
+      from cernbox_utils import db,eos
+
+      db = db.ShareDB()
+
+      shares=db.get_share(owner=args.shares_owner,share_type="regular")
+
+      eos = eos.EOS(config['eos_mgm_url'])
+      eos.role=(0,0)
+
+      # calculate complete acl list for each shared eos path (fid)
+      # verify if shares are not outdated
+   
+      shared_fids = {}
+      parent_paths = {}
+
+      for s in shares:
+         fid = s.item_source
+
+         logger.info("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+
+         # check if owner still exists, if not issue error but treat the share normally
+         # otherwise this is dangerous if local password database is not fully synchronized with ldap!
+         try:
+            pwd.getpwnam(s.uid_owner)
+         except:
+            logger.error("USER_NOT_FOUND: share owner uid %s does not exist",s.uid_owner)
+
+         # Verify if share points to a valid storage entity
+         try:
+            f=eos.fileinfo("inode:"+fid)
+
+            if f.file.startswith(config['eos_recycle_dir']):
+               # eos entry is in the trashbin
+               logger.error("TRASHBIN_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               continue
+         except subprocess.CalledProcessError,x:
+            if x.returncode == 2:
+               # eos entry does not exist
+               logger.error("DEAD_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               continue
+
+         # share pointing outside of the home directories area (e.g. project spaces)
+         # we do not validate these spaces later so we do not add these for subsequent verification
+         if not os.path.normpath(f.file).startswith(config['eos_prefix']):
+            logger.warning("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
+            continue
+
+         if len(os.path.normpath(f.file).split("/"))>6:
+            logger.error("NESTED_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
+         else:
+            logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
+         
+
+         # this is the expected ACL entry in the shared directory tree
+         acl = eos.AclEntry(name=s.share_with)
+
+         if is_egroup(s.share_with):
+            acl.entity = "egroup"
+         else:
+            acl.entity = "u"
+
+         if s.permissions == 1:
+            acl.bits = "rx"
+         else:
+            acl.bits = "rwx+d"
+
+
+         shared_fids.setdefault(fid,[]).append(acl)
+
+         browse_acl = eos.AclEntry(name=acl.name,entity=acl.entity,bits='x') # expected browse ACL of the parent
+
+         parent_paths.setdefault(os.path.dirname(os.path.normpath(f.file)),[]).append(browse_acl)
+
+         # check if the parent directory has the x permission bits set for each sharee in the acls
+         #pf = eos.fileinfo(os.path.dirname(os.path.normpath(f.file)))
+         #parent_acls = set(eos.parse_sysacl(pf.xattr['sys.acl']))
+
+         #browse_acl2 = eos.AclEntry(name=acl.name,entity=acl.entity,bits='rx') # expected browse ACL of the parent
+         #if browse_acl not in parent_acls:
+         #if browse_acl not in parent_acls and browse_acl2 not in parent_acls:
+
+      # check browsable ACLs set on the parent paths
+
+      for path in parent_paths:
+         f = eos.fileinfo(path)
+            
+         db_acls = parent_paths[path]
+
+         # add the ACL for the owner
+         try:
+            owner = pwd.getpwuid(int(f.uid)).pw_name
+         except KeyError,x:
+            logger.error("USER_NOT_FOUND: file owner uid %s does not exist, skipping... %s",f.uid,f.file)
+            continue
+
+         db_acls = [eos.AclEntry(entity='u',name=owner,bits='rwx!m')] + db_acls
+
+         eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
+
+         missing_acls=set(db_acls)-set(eos_acls)
+         extra_acls=set(eos_acls)-set(db_acls)
+
+         if missing_acls:
+           logger.warning("MISSING_PARENT_ACL path '%s': %s ACTUAL %s EXPECTED %s",f.file,missing_acls,f.xattr['sys.acl'],eos.dump_sysacl(squash(db_acls)))
+
+         if extra_acls:
+           logger.warning("EXTRA_PARENT_ACL path '%s': %s ACTUAL %s EXPECTED %s",f.file,extra_acls,f.xattr['sys.acl'],eos.dump_sysacl(squash(db_acls)))
+
+         if extra_acls or missing_acls:
+            eos.set_sysacl(f.file,eos.dump_sysacl(db_acls),dryrun=not args.fix)
+
+
+      # compare the acl list calculated from share db with the actual acl list on eos in the shared directory tree
+ 
+      for fid in shared_fids:
+
+         f=eos.fileinfo("inode:"+fid)
+
+         db_acls = set(shared_fids[fid])
+
+         # add the ACL for the owner
+         try:
+            owner = pwd.getpwuid(int(f.uid)).pw_name
+         except KeyError,x:
+            logger.error("USER_NOT_FOUND: file owner uid %s does not exist, skipping... %s",f.uid,f.file)
+            continue
+
+         db_acls.add(eos.AclEntry(entity='u',name=owner,bits='rwx!m'))
+
+         # here we recursively check if the same set of db_acls is consistenly applied in the whole tree
+         # the first entry reported is the shared directory itself (the top level of the tree)
+         # we will need maybe to prune bottom paths to avoid too many error messages for large trees
+         for f in eos.fileinfo_r(f.file,type="-d"):
+            if not is_special_folder(f.file):
+               logger.debug("checking shared tree: %s",str(f.file))
+               eos_acls = set(eos.parse_sysacl(f.xattr['sys.acl']))
+
+               extra_acls = eos_acls-db_acls
+               if extra_acls:
+                  logger.warning("EXTRA_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,eos.dump_sysacl(squash(extra_acls)),owner,f.xattr['sys.acl'], eos.dump_sysacl(squash(db_acls)))
+
+               missing_acls = db_acls-eos_acls
+               if missing_acls:
+                  logger.error("MISSING_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,missing_acls,owner,f.xattr['sys.acl'], eos.dump_sysacl(squash(db_acls)))
+                  break
+      logger.info('verified %d shares and %d eos paths'%(len(shares),len(shared_fids)))
+   logger.info("OK")
+
+def is_special_folder(path):
+   name = os.path.basename(os.path.normpath(path))
+   for prefix in ['.sys.v#','.sys.a#']:
+      if name.startswith(prefix):
+         return True
+   return False
+
+   
+def is_egroup(name):
+   return '-' in name
 
 def parse_sharee(sharee):
     try:
        entity,who = sharee.split(":") # this may also raise ValueError
-       if not entity in ['u','e']:
+       if not entity in ['u','egroup']:
           raise ValueError()
     except ValueError:
-       print >> sys.stderr, "ERROR: specify sharee '%s' in u:USER or e:GROUP format"%args.sharee
+       print >> sys.stderr, "ERROR: specify sharee '%s' in u:USER or egroup:GROUP format"%args.sharee
        sys.exit(2)
     return entity,who
 
