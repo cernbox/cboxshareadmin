@@ -35,7 +35,7 @@ class ShareDB:
 
       self.db = db
       
-   def get_share(self,fid=None,sharee=None,owner=None,share_type=None):
+   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None):
       """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
       """
       cur = self.db.cursor()
@@ -50,6 +50,12 @@ class ShareDB:
 
       if owner:
          WHERE.append('uid_owner = "%s"'%owner)
+
+      if share_time_greater_than:
+         WHERE.append('stime > %s'%share_time_greater_than)
+
+      if item_type:
+         WHERE.append('item_type = "%s"'%item_type)
 
       if share_type:
          if share_type == "link": 
