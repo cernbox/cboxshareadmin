@@ -23,6 +23,13 @@ class EOS:
 
         return eos + self.mgmurl + " " + " ".join(args)
 
+
+    def ls(self,path,opts,role=None):
+
+        eos = self._eoscmd(role,'ls',opts,quote(path))
+
+        return runcmd(eos,echo=False)[1].splitlines()
+
     def fileinfo(self,spec,role=None):
         """ spec may be <path> or fid:<fid-dec> ...
         """
@@ -31,14 +38,20 @@ class EOS:
                 
         return parse_mline(runcmd(eos,echo=False)[1])
     
-    def fileinfo_r(self,path,type="",role=None):
+    def fileinfo_r(self,path,type="",maxdepth=None,role=None):
 
-        eos = self._eoscmd(role,"find %s --fileinfo"%type,quote(path))
+        opts = ""
+        if maxdepth:
+            opts += "--maxdepth "+str(maxdepth)
+
+        eos = self._eoscmd(role,"find %s --fileinfo"%type,opts,quote(path))
 
         r = []
         for mline in runcmd(eos,echo=False)[1].splitlines():
             #logger.debug("fileinfo: %s",mline)
-            r.append(parse_mline(mline))
+            mline=mline.strip()
+            if mline: # skip empty lines
+                r.append(parse_mline(mline))
         return r
 
     def set_sysacl(self,path,acl,role=None,dryrun=True):
@@ -51,7 +64,12 @@ class EOS:
         #logger.warning("eos -r 0 0 attr set sys.acl=%s %s",quote(eos.dump_sysacl(db_acls)),quote(f.file))
 
     class FileInfo(cernbox_utils.script.Data):
-        pass
+        def is_dir(self):
+            return self.__dict__.has_key('container') # directory entries have the container counter 
+
+        def is_file(self):
+            return not self.is_dir()
+                
 
     class AclEntry(cernbox_utils.script.Data):
        _names = ['entity','name','bits']
@@ -94,7 +112,12 @@ def parse_mline(line):
     Return dictionary with keys. Extended attributes are in an embedded dictionary accessible with 'xattr' key.
     """
 
-    keylength = int(line.split()[0].split('=')[1])
+    try:
+        keylength = int(line.split()[0].split('=')[1])
+    except IndexError:
+        logger.critical("IndexError parsing mline: %s",repr(line))
+        raise ValueError() # Notice: was IndexError before, changed from 'raise' on 14/11/2016
+        
     file_marker = " file="
     pos = line.find(file_marker) + len(file_marker)
 
@@ -106,7 +129,13 @@ def parse_mline(line):
 
     xattrn = None
     for a in attrs:
-        k,v = a.split('=')
+        # FIXED: split() is broken when v contains '=' character, WAS: k,v = a.split('=')
+        i=a.find('=')
+        if i == -1:
+            logger.critical("Error parsing attribute '%s': '=' not found, mline is '%s'",repr(a),repr(line))
+            raise ValueError()
+        k = a[:i]
+        v = a[i+1:]
         if k == 'xattrn':
             xattrn = v
         elif k == 'xattrv':
