@@ -50,6 +50,11 @@ def getLogger(name="",level=None):
    if not logger:
       if level is None:
           level = logging.INFO  # change here to DEBUG if you want to debug config stuff
+
+      #h = logging.StreamHandler()
+      #fmt = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+      #h.setFormatter(fmt)
+      #h.setLevel(level)
       logging.basicConfig(level=level)
 
    names = ['cernbox']
@@ -60,6 +65,7 @@ def getLogger(name="",level=None):
 
    if not logger:
        logger = l
+       #logger.addHandler(h)
 
    return l
 
