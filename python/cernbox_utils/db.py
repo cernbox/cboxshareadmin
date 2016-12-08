@@ -66,6 +66,8 @@ class ShareDB:
 
       if WHERE:
          WHERE = "WHERE " + (' and '.join(WHERE))
+      else:
+         WHERE = ""
 
       logger = cernbox_utils.script.getLogger('db')
 
