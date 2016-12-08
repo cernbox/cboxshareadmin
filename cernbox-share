@@ -282,6 +282,9 @@ def main():
       shared_paths = {}
       shared_acls = {}
 
+      # detect duplicate shares
+      duplicate_shares = {}
+
       #parent_paths = {}
 
       logger.info('Found %d shares of user %s',len(shares),args.shares_owner)
@@ -290,6 +293,18 @@ def main():
          fid = s.item_source
 
          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+
+         unique_key = (fid,s.share_with,s.uid_owner)
+
+         try:
+            other_share_ids = duplicate_shares[unique_key]
+            logger.error("DUPLICATE_SHARE other_share_id=%s id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",other_share_ids,s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
+            continue
+         except KeyError:
+             duplicate_shares.setdefault(unique_key,[])
+             duplicate_shares[unique_key].append(s.id)
+
+         duplicate_shares.setdefault((fid,s.share_with,s.uid_owner),True)
 
          # check if owner still exists, if not issue error but treat the share normally
          # otherwise this is dangerous if local password database is not fully synchronized with ldap!
