@@ -45,33 +45,38 @@ def main():
    parser=cernbox_utils.script.arg_parser(description='Manipulate regular shares to users and egroups. ')
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
-   add_command = subparser.add_parser('add', help="add share to the system")
-   #add_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
-   add_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry already exists)")
-   add_command.add_argument("path", help="path on storage")
-   add_command.add_argument("sharee", help="share with u:USER or egroup:GROUP")
-   add_command.add_argument("acl", help="access rights: r (read), rw (read-write)")
+   subcmd = subparser.add_parser('add', help="add share to the system")
+   #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
+   subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry already exists)")
+   subcmd.add_argument("path", help="path on storage")
+   subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
+   subcmd.add_argument("acl", help="access rights: r (read), rw (read-write)")
 
-   remove_command = subparser.add_parser('remove', help="remove share the system")
-   #remove_command.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
-   remove_command.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
-   remove_command.add_argument("path", help="path on storage")
-   remove_command.add_argument("sharee", help="share with u:USER or egroup:GROUP")
+   subcmd = subparser.add_parser('remove', help="remove share the system")
+   #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
+   subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
+   subcmd.add_argument("path", help="path on storage")
+   subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
 
-   verify_command = subparser.add_parser('verify', help="verify consistency of shares owned by the given user")
-   verify_command.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
-   verify_command.add_argument("--deep-fs-check", default=False, action='store_true', help="check the entire filesystem of the share_owner to misconfigured ACLs also in non-shared folders")
-   verify_command.add_argument("shares_owner", help="'*' to check all users in the system")
+   subcmd = subparser.add_parser('overview', help="provide overview of shares per user or for all users")
+   subcmd.add_argument("shares_owner", help="'*' to check all users in the system")
+   subcmd.add_argument("--sort-by", default="all", action='store', help="sort output by the number of: 'all' shares, 'link' shares, 'regular' shares ")   
 
-   verify_command = subparser.add_parser('remove-orphan-xbits', help="remove xbits which were set in the initial implementation in the parent ACLs")
-   verify_command.add_argument("--fix", default=False, action='store_true', help="fix it")
-   verify_command.add_argument("--logdir",default="",action="store",help="log directory")
-   verify_command.add_argument("path", help="top of the tree to check")
+   subcmd = subparser.add_parser('verify', help="verify consistency of shares owned by the given user")
+   subcmd.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
+   subcmd.add_argument("--deep-fs-check", default=False, action='store_true', help="check the entire filesystem of the share_owner to misconfigured ACLs also in non-shared folders")
+   subcmd.add_argument("--logdir",default="",action="store",help="log directory")
+   subcmd.add_argument("shares_owner", help="'*' to check all users in the system")
 
-   verify_command = subparser.add_parser('show-other-acls', help="show all directories which have an acl which does not contain name (useful to see which directories are open besides the owner)")
-   verify_command.add_argument("--ignore-special-directories", default=False, action='store_true', help="ignore special system directories (%s)"%is_special_folder.__doc__)
-   verify_command.add_argument("path", help="top of the tree to check")
-   verify_command.add_argument("name", help="name in ACL")
+   subcmd = subparser.add_parser('remove-orphan-xbits', help="remove xbits which were set in the initial implementation in the parent ACLs")
+   subcmd.add_argument("--fix", default=False, action='store_true', help="fix it")
+   subcmd.add_argument("--logdir",default="",action="store",help="log directory")
+   subcmd.add_argument("path", help="top of the tree to check")
+
+   subcmd = subparser.add_parser('show-other-acls', help="show all directories which have an acl which does not contain name (useful to see which directories are open besides the owner)")
+   subcmd.add_argument("--ignore-special-directories", default=False, action='store_true', help="ignore special system directories (%s)"%is_special_folder.__doc__)
+   subcmd.add_argument("path", help="top of the tree to check")
+   subcmd.add_argument("name", help="name in ACL")
    
    args = parser.parse_args()
 
@@ -178,6 +183,57 @@ def main():
 #         else:
 #            print f.file, "no change",eos_acls
 
+   if args.cmd == "overview":
+
+      from cernbox_utils import db,eos
+
+      if not args.shares_owner.strip():
+         logger.critical("Must provide a shares_owner or '*'")
+         return
+
+      if args.shares_owner == '*':
+         args.shares_owner = ''
+
+
+      db = db.ShareDB()
+
+      shares=db.get_share(owner=args.shares_owner)
+
+      owner_all_share_cnt = {}
+      owner_link_share_cnt = {}
+      owner_regular_share_cnt = {}
+
+      for s in shares:
+         try:
+            logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+
+            owner_all_share_cnt.setdefault(s.uid_owner,0)
+            owner_link_share_cnt.setdefault(s.uid_owner,0)
+            owner_regular_share_cnt.setdefault(s.uid_owner,0)
+
+            owner_all_share_cnt[s.uid_owner] += 1
+
+            if s.share_type == 3:
+               owner_link_share_cnt[s.uid_owner] += 1
+            else:
+               owner_regular_share_cnt[s.uid_owner] += 1
+
+         except Exception,x:
+            logger.error("Problem with processing share id=%d : %s",s.id,repr(x))
+
+      sort_by = owner_all_share_cnt
+
+
+      if args.sort_by == 'regular':
+         sort_by = owner_regular_share_cnt
+
+      if args.sort_by == 'link':
+         sort_by = owner_link_share_cnt
+
+      for u,cnt in sorted(sort_by.iteritems(), key=lambda (k,v): (v,k)):
+         logger.info("Owner '%s' has total of %d shares: %d regular shares, %d link shares",u,owner_all_share_cnt[u],owner_regular_share_cnt[u],owner_link_share_cnt[u])
+
+
    if args.cmd == "verify":
 
       import pwd
@@ -199,6 +255,17 @@ def main():
             logger.critical("Must provide a single shares_owner for --deep-fs-check option")
             return
 
+
+      if args.logdir:
+         import logging
+         fix_str = ""
+         if args.fix: fix_str=".fix"
+         logfn = os.path.join(args.logdir,"verify."+args.shares_owner+fix_str+".log")
+         fh = logging.FileHandler(logfn)
+         fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+         logger.addHandler(fh)
+
+
       db = db.ShareDB()
 
       shares=db.get_share(owner=args.shares_owner,share_type="regular")
@@ -211,6 +278,7 @@ def main():
    
       shared_fids = {}
 
+      # shared_paths: key is a path with a trailing slash 
       shared_paths = {}
       shared_acls = {}
 
@@ -241,14 +309,14 @@ def main():
          except subprocess.CalledProcessError,x:
             if x.returncode == 2:
                # eos entry does not exist
-               logger.error("DEAD_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               logger.error("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
                continue
 
          # share pointing outside of the home directories area (e.g. project spaces)
          # we do not validate these spaces later so we do not add these for subsequent verification
          if not os.path.normpath(f.file).startswith(config['eos_prefix']):
             logger.warning("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
-            continue
+            #continue
 
          # NESTEED SHARES ARE OK
          #if len(os.path.normpath(f.file).split("/"))>6:
@@ -273,66 +341,31 @@ def main():
 
          shared_fids.setdefault(fid,[]).append(acl)
 
-         p = os.path.normpath(f.file)
+         p = os.path.normpath(f.file)+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
          shared_paths[p] = fid
          shared_acls.setdefault(p,[]).append(acl)
-
-         #browse_acl = eos.AclEntry(name=acl.name,entity=acl.entity,bits='x') # expected browse ACL of the parent
-
-         #parent_paths.setdefault(os.path.dirname(os.path.normpath(f.file)),[]).append(browse_acl)
-
-         # check if the parent directory has the x permission bits set for each sharee in the acls
-         #pf = eos.fileinfo(os.path.dirname(os.path.normpath(f.file)))
-         #parent_acls = set(eos.parse_sysacl(pf.xattr['sys.acl']))
-
-         #browse_acl2 = eos.AclEntry(name=acl.name,entity=acl.entity,bits='rx') # expected browse ACL of the parent
-         #if browse_acl not in parent_acls:
-         #if browse_acl not in parent_acls and browse_acl2 not in parent_acls:
-
-      # check browsable ACLs set on the parent paths
-
-      # for path in parent_paths:
-      #    f = eos.fileinfo(path)
-            
-      #    db_acls = parent_paths[path]
-
-      #    # add the ACL for the owner
-      #    try:
-      #       owner = pwd.getpwuid(int(f.uid)).pw_name
-      #    except KeyError,x:
-      #       logger.error("USER_NOT_FOUND: file owner uid %s does not exist, skipping... %s",f.uid,f.file)
-      #       continue
-
-      #    db_acls = [eos.AclEntry(entity='u',name=owner,bits='rwx!m')] + db_acls
-
-      #    eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
-
-      #    missing_acls=set(db_acls)-set(eos_acls)
-      #    extra_acls=set(eos_acls)-set(db_acls)
-
-      #    if missing_acls:
-      #      logger.warning("MISSING_PARENT_ACL path '%s': %s ACTUAL %s EXPECTED %s",f.file,missing_acls,f.xattr['sys.acl'],eos.dump_sysacl(squash(db_acls)))
-
-      #    if extra_acls:
-      #      logger.warning("EXTRA_PARENT_ACL path '%s': %s ACTUAL %s EXPECTED %s",f.file,extra_acls,f.xattr['sys.acl'],eos.dump_sysacl(squash(db_acls)))
-
-      #    if extra_acls or missing_acls:
-      #       eos.set_sysacl(f.file,eos.dump_sysacl(db_acls),dryrun=not args.fix)
-
          
+
       # shares within shares are not allowed
       # check it
 
       blacklist_paths = []
+      prefix_paths = {}
 
       for i,p1 in enumerate(shared_paths):
-         p1 = p1+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
+         #p1 = p1+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
          for j,p2 in enumerate(shared_paths):
-            p2 = p2+"/" # see above
+            #p2 = p2+"/" # see above
             if i != j:
                if p1.startswith(p2):
-                  blacklist_paths.append(p2)
-                  logger.error("SHARE WITHIN SHARE is not allowed: %s %s",p1,p2)
+                  prefix_paths.setdefault(p1,[])
+                  prefix_paths[p1].append(p2)
+                  #blacklist_paths.append(p2)  # DISABLE BLACKLISTING
+                  logger.info("NESTED_SHARE: %s %s",p1,p2)
+
+
+      for p in prefix_paths:
+         logger.info("Nested shared path %s has shared parents %s",p,prefix_paths[p])
 
 
       logger.info("Expected shared paths with visibility to others (%s)",len(shared_acls))
@@ -340,6 +373,7 @@ def main():
          logger.info("Expected acls in shared path %s %s",p,eos.dump_sysacl(acl))
 
 
+      # BLACKLIST FUNCTIONALITY
       logger.info("Blacklisted trees (%s) which will not be analysed but are problematic",len(blacklist_paths))
       for p in blacklist_paths:
          logger.error("Blacklisted %s",p)
@@ -348,20 +382,32 @@ def main():
 
       if args.deep_fs_check:
 
-         homedir = '/eos/user/%s/%s'%(args.shares_owner[0],args.shares_owner)
+         homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
 
          cnt = 0
          fixed_cnt = 0
          blacklist_cnt = 0
 
+
+         perm_not_enough_cnt = 0
+         perm_too_many_cnt = 0
+         perm_diff_cnt = 0
+
          for f in eos.fileinfo_r(homedir,type="-d"):
             cnt += 1
             try:
                eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
+               if is_special_folder(f.file):
+                  logger.error("Special folder should not have sys.acl set: %s",f.file)
+                  # FIXME: remove ACL from special folder?
             except KeyError,x:
-               pass # no ACL at all
+               if is_special_folder(f.file):
+                  continue # skip this entry, it is okey for special folders not to have ACL at all
+               else:
+                  eos_acls = [] # no ACLs defined for this directory
 
 
+            # BLACKLIST FUNCTIONALITY
             # do not touch anything in blacklisted paths: we may not know what to do with them (yet)
             stop = False
             for black_p in blacklist_paths:
@@ -376,6 +422,9 @@ def main():
             # expected ACL
             expected_acls = [eos.AclEntry(entity="u",name=args.shares_owner,bits="rwx!m")] # this acl entry should be always set for every directory in homedir
             p = os.path.normpath(f.file)
+            
+            if f.is_dir():
+               p += "/" # add trailing slash to directories, this will make sure that the top-of-shared-directory-tree also matches 
 
             for sp in shared_paths:
                if p.startswith(sp): # directory is part of a share tree which has a top at sp
@@ -385,15 +434,28 @@ def main():
 
             #logger.info(" --- SCAN      --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
 
+            dryrun = not args.fix
+
             if set(expected_acls) != set(eos_acls):
-               logger.error(" ---  ACL_NEED_CHANGE  --- %s --- %s --- NEW --- %s --- CURRENT --- %s",f.fid, f.file, eos.dump_sysacl(expected_acls),eos.dump_sysacl(eos_acls))
-               eos.set_sysacl(f.file,eos.dump_sysacl(expected_acls),dryrun=not args.fix)
+               if set(eos_acls) < set(expected_acls):
+                  what = "NOT_ENOUGH_PERMISSIONS"
+                  perm_not_enough_cnt += 1
+               elif set(eos_acls) > set(expected_acls):
+                  what =  "TOO_MANY_PERMISSIONS"
+                  perm_too_many_cnt += 1
+               else:
+                  what = "DIFFERENT_PERMISSIONS"
+                  perm_diff_cnt += 1
+                  dryrun = True # do not fix anything like that
+
+               logger.error(" ---  %s --- ACL_NEED_CHANGE  --- %s --- %s --- NEW --- %s --- CURRENT --- %s",what, f.fid, f.file, eos.dump_sysacl(expected_acls),eos.dump_sysacl(eos_acls))
+               eos.set_sysacl(f.file,eos.dump_sysacl(expected_acls),dryrun=dryrun)
                fixed_cnt += 1
             else:
                #logger.info(" --- NO_CHANGE --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
                pass
 
-         logger.info("Scanned %d directories, fixed %d directories, blacklisted %d directories ",cnt,fixed_cnt,blacklist_cnt)
+         logger.info("Overview for user %s : scanned %d directories, fixed %d directories, blacklisted %d directories; permission issues: NOT_ENOUGH=%d TOO_WIDE=%d DIFFERENT=%d ",args.shares_owner,cnt,fixed_cnt,blacklist_cnt,perm_not_enough_cnt,perm_too_many_cnt,perm_diff_cnt)
             
       return 
 
@@ -441,6 +503,19 @@ def is_special_folder(path):
          return True
    return False
 
+
+def more_permissions_than(acl_list, reference_acl_list):
+   """Return all ACL entries from acl_list which give more permissions than specified by reference_acl_list.
+   """
+
+   acls=set(acl_list)
+   refs=set(reference_acl_list)
+
+   more = set()
+
+   for acl in acls:
+      if not acl in refs:
+         pass
    
 def is_egroup(name):
    return '-' in name
