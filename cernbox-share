@@ -283,9 +283,11 @@ def main():
       shared_acls = {}
 
       # detect duplicate shares
-      duplicate_shares = {}
+      unique_share_keys = {}
 
       #parent_paths = {}
+
+      disable_deep_check = False
 
       logger.info('Found %d shares of user %s',len(shares),args.shares_owner)
 
@@ -297,14 +299,25 @@ def main():
          unique_key = (fid,s.share_with,s.uid_owner)
 
          try:
-            other_share_ids = duplicate_shares[unique_key]
+            other_share_ids = unique_share_keys[unique_key]
             logger.error("DUPLICATE_SHARE other_share_id=%s id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",other_share_ids,s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
+            disable_deep_check = True
             continue
          except KeyError:
-             duplicate_shares.setdefault(unique_key,[])
-             duplicate_shares[unique_key].append(s.id)
+             unique_share_keys.setdefault(unique_key,[])
+             unique_share_keys[unique_key].append(s.id)
 
-         duplicate_shares.setdefault((fid,s.share_with,s.uid_owner),True)
+         unique_share_keys.setdefault((fid,s.share_with,s.uid_owner),True)
+
+
+         if s.file_target.count("/")>1:
+            logger.error("FILE_TARGET_MULTIPLE_SLASH_PROBLEM id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
+            disable_deep_check = True
+            continue
+
+         #if not s.file_target.startswith("/") or s.file_target.count("/")>1:
+
+   
 
          # check if owner still exists, if not issue error but treat the share normally
          # otherwise this is dangerous if local password database is not fully synchronized with ldap!
@@ -383,6 +396,10 @@ def main():
          logger.info("Nested shared path %s has shared parents %s",p,prefix_paths[p])
 
 
+      # blackist duplicate shares
+
+
+
       logger.info("Expected shared paths with visibility to others (%s)",len(shared_acls))
       for p,acl in shared_acls.items():
          logger.info("Expected acls in shared path %s %s",p,eos.dump_sysacl(acl))
@@ -393,10 +410,15 @@ def main():
       for p in blacklist_paths:
          logger.error("Blacklisted %s",p)
 
+         
       # scan full tree
 
       if args.deep_fs_check:
 
+         if disable_deep_check:
+            logger.fatal("deep check disabled by previous errors")
+            return
+            
          homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
 
          cnt = 0
