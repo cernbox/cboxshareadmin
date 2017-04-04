@@ -64,7 +64,9 @@ def main():
 
    subcmd = subparser.add_parser('verify', help="verify consistency of shares owned by the given user")
    subcmd.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
+   subcmd.add_argument("--fix-all-perms", default=False, action='store_true', help="fix all permisions (even if different and potentially overriding manualy set permissions)")
    subcmd.add_argument("--deep-fs-check", default=False, action='store_true', help="check the entire filesystem of the share_owner to misconfigured ACLs also in non-shared folders")
+   subcmd.add_argument("--homedir", default="", action='store', help="override home directory (e.g. to check project spaces), if not set then it defaults to user home directory of shares_owner")
    subcmd.add_argument("--logdir",default="",action="store",help="log directory")
    subcmd.add_argument("shares_owner", help="'*' to check all users in the system")
 
@@ -342,7 +344,7 @@ def main():
 
          # share pointing outside of the home directories area (e.g. project spaces)
          # we do not validate these spaces later so we do not add these for subsequent verification
-         if not os.path.normpath(f.file).startswith(config['eos_prefix']):
+         if not os.path.normpath(f.file).startswith(config['eos_prefix']) and not os.path.normpath(f.file).startswith(config['eos_project_prefix']):
             logger.warning("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
             #continue
 
@@ -418,8 +420,12 @@ def main():
          if disable_deep_check:
             logger.fatal("deep check disabled by previous errors")
             return
-            
-         homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
+
+         if args.homedir:
+            homedir = args.homedir
+         else:
+            homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
+            #homedir = '/eos/project/c/cmsgem-ge11-production'
 
          cnt = 0
          fixed_cnt = 0
@@ -443,6 +449,8 @@ def main():
                else:
                   eos_acls = [] # no ACLs defined for this directory
 
+
+            # FIX: u:wwweos:rx
 
             # BLACKLIST FUNCTIONALITY
             # do not touch anything in blacklisted paths: we may not know what to do with them (yet)
@@ -483,7 +491,8 @@ def main():
                else:
                   what = "DIFFERENT_PERMISSIONS"
                   perm_diff_cnt += 1
-                  dryrun = True # do not fix anything like that
+                  if not args.fix_all_perms:
+                     dryrun = True # do not fix anything like that (unless explicitly specified: --fix-all-perms)
 
                logger.error(" ---  %s --- ACL_NEED_CHANGE  --- %s --- %s --- NEW --- %s --- CURRENT --- %s",what, f.fid, f.file, eos.dump_sysacl(expected_acls),eos.dump_sysacl(eos_acls))
                eos.set_sysacl(f.file,eos.dump_sysacl(expected_acls),dryrun=dryrun)
