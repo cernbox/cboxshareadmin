@@ -35,12 +35,15 @@ class ShareDB:
 
       self.db = db
       
-   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None):
+   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None,share_id=None):
       """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
       """
       cur = self.db.cursor()
 
       WHERE = []
+
+      if share_id:
+         WHERE.append('id = "%s"'%share_id)
 
       if fid:
          WHERE.append('file_source = "%s"'%fid)
@@ -86,4 +89,23 @@ class ShareDB:
 
       return shares
 
-   
+#   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
+
+   def delete_share(self,id):
+      """ Delete single share represented by id.
+      """
+      
+      cur = self.db.cursor()
+      
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql="DELETE FROM oc_share WHERE id=%d;"%int(id)
+      logger.debug(sql)
+      cur.execute(sql)
+      
+      self.db.commit()
+
+      return
+
+      # Check referential integrity.      
+      # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
