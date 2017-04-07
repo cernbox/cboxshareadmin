@@ -32,12 +32,6 @@ import subprocess
 def quote(s):
    return "'"+s+"'"
 
-# remove duplicates, preserving order
-def squash(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
-
 def main():
    global config
    import cernbox_utils.script
@@ -45,10 +39,11 @@ def main():
    parser=cernbox_utils.script.arg_parser(description='Manipulate regular shares to users and egroups. ')
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
+
    subcmd = subparser.add_parser('add', help="add share to the system")
    #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
-   subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry already exists)")
    subcmd.add_argument("path", help="path on storage")
+   subcmd.add_argument("owner", help="share owner")
    subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
    subcmd.add_argument("acl", help="access rights: r (read), rw (read-write)")
 
@@ -57,6 +52,10 @@ def main():
    subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
    subcmd.add_argument("path", help="path on storage")
    subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
+
+   subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
+   subcmd.add_argument("pathspec", help="path or fid:n")
+   #subcmd.add_argument("owner", help="owner of the share")
 
    subcmd = subparser.add_parser('overview', help="provide overview of shares per user or for all users")
    subcmd.add_argument("shares_owner", help="'*' to check all users in the system")
@@ -89,6 +88,26 @@ def main():
    logger.info("Using  DB: %s",config['dbhost'])
    logger.info("Using EOS: %s",config['eos_mgm_url'])
 
+   from cernbox_utils import db,eos
+
+   import cernbox_utils.sharing
+
+   if args.cmd == "acl_update":
+      db = db.ShareDB()
+      eos = eos.EOS(config['eos_mgm_url'])
+      eos.role=(0,0)
+
+      import cernbox_utils.sharing
+
+      if args.pathspec.startswith("fid:"):
+         fid = args.pathspec[len("fid:"):]
+      else:
+         fid = eos.fileinfo(args.pathspec).fid
+
+      for f in cernbox_utils.sharing.compute_acls(fid,eos,db,owner=None):
+         print f.file,f.share_acl
+
+
    if args.cmd == "add":
       
       entity,who = parse_sharee(args.sharee)
@@ -99,13 +118,15 @@ def main():
       ENTITY = {'u':'user','e':'egroup'}
 
       print "Add",ACL[args.acl],"share for",ENTITY[entity],who,"to tree",args.path
-      if args.nodb:
-        print "Modify storage ACLs only (database entry must already exist)."
-      else:
-        print "Modify storage ACLs and add database entry."
+
+      logger.info("Modify storage ACLs and add database entry.")
+      logger.error("NOT YET IMPLEMENTED")
+      sys.exit(1)
+
+      # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
 
    if args.cmd == "show-other-acls":
-      from cernbox_utils import eos
+      #from cernbox_utils import eos
       eos = eos.EOS(config['eos_mgm_url'])
       eos.role=(0,0)
 
@@ -137,7 +158,7 @@ def main():
       logger.info("Scan completed. Found %d directories, %d with acls not containing %s, %d with empty acls, %d special dirs",cnt,other_acl_cnt,args.name,empty_acl_cnt,special_dir_cnt)
 
    if args.cmd == "remove-orphan-xbits":
-      from cernbox_utils import eos
+      #from cernbox_utils import eos
       eos = eos.EOS(config['eos_mgm_url'])
       eos.role=(0,0)
 
@@ -243,8 +264,6 @@ def main():
       #for k in config:
       #   print k,config[k]
 
-      from cernbox_utils import db,eos
-
       if not args.shares_owner.strip():
          logger.critical("Must provide a shares_owner or '*'")
          return
@@ -302,6 +321,7 @@ def main():
 
          try:
             other_share_ids = unique_share_keys[unique_key]
+            # TODO: different or the same ACLs?
             logger.error("DUPLICATE_SHARE other_share_id=%s id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",other_share_ids,s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
             disable_deep_check = True
             continue
@@ -311,15 +331,12 @@ def main():
 
          unique_share_keys.setdefault((fid,s.share_with,s.uid_owner),True)
 
-
          if s.file_target.count("/")>1:
             logger.error("FILE_TARGET_MULTIPLE_SLASH_PROBLEM id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
             disable_deep_check = True
             continue
 
          #if not s.file_target.startswith("/") or s.file_target.count("/")>1:
-
-   
 
          # check if owner still exists, if not issue error but treat the share normally
          # otherwise this is dangerous if local password database is not fully synchronized with ldap!
@@ -356,18 +373,7 @@ def main():
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
          
          # this is the expected ACL entry in the shared directory tree
-         acl = eos.AclEntry(name=s.share_with)
-
-         if is_egroup(s.share_with):
-            acl.entity = "egroup"
-         else:
-            acl.entity = "u"
-
-         if s.permissions == 1:
-            acl.bits = "rx"
-         else:
-            acl.bits = "rwx+d"
-
+         acl = cernbox_utils.sharing.share2acl(s)
 
          shared_fids.setdefault(fid,[]).append(acl)
 
@@ -563,9 +569,6 @@ def more_permissions_than(acl_list, reference_acl_list):
       if not acl in refs:
          pass
    
-def is_egroup(name):
-   return '-' in name
-
 def parse_sharee(sharee):
     try:
        entity,who = sharee.split(":") # this may also raise ValueError
