@@ -105,7 +105,7 @@ def main():
          fid = eos.fileinfo(args.pathspec).fid
 
       for f in cernbox_utils.sharing.compute_acls(fid,eos,db,owner=None):
-         print f.file,f.share_acl
+         print "eos attr -r set  sys.acl='%s' %s"%(eos.dump_sysacl(f.share_acl + [eos.AclEntry(entity="u",name="wwweos",bits="rx")]),f.file)
 
 
    if args.cmd == "add":
@@ -243,6 +243,7 @@ def main():
 
          except Exception,x:
             logger.error("Problem with processing share id=%d : %s",s.id,repr(x))
+            raise
 
       sort_by = owner_all_share_cnt
 
@@ -261,9 +262,6 @@ def main():
 
       import pwd
 
-      #for k in config:
-      #   print k,config[k]
-
       if not args.shares_owner.strip():
          logger.critical("Must provide a shares_owner or '*'")
          return
@@ -275,7 +273,6 @@ def main():
          if not args.shares_owner:
             logger.critical("Must provide a single shares_owner for --deep-fs-check option")
             return
-
 
       if args.logdir:
          import logging
@@ -365,9 +362,9 @@ def main():
             logger.warning("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
             #continue
 
-         # NESTEED SHARES ARE OK
+         # NOT-AT-TOP-LEVELE SHARES ARE OK
          #if len(os.path.normpath(f.file).split("/"))>6:
-         #   logger.error("NESTED_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
+         #   logger.error("NOT_AT_TOP_LEVEL_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
          #else:
          
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
@@ -432,6 +429,7 @@ def main():
          else:
             homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
             #homedir = '/eos/project/c/cmsgem-ge11-production'
+            #homedir = '/eos/project/a/atlasweb'
 
          cnt = 0
          fixed_cnt = 0
@@ -481,16 +479,19 @@ def main():
                if p.startswith(sp): # directory is part of a share tree which has a top at sp
                   expected_acls.extend(shared_acls[sp])
 
-            expected_acls = squash(set(expected_acls))
+            expected_acls = cernbox_utils.sharing.squash(set(expected_acls))
 
             #logger.info(" --- SCAN      --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
 
             dryrun = not args.fix
 
+            change_set=set()
+
             if set(expected_acls) != set(eos_acls):
                if set(eos_acls) < set(expected_acls):
                   what = "NOT_ENOUGH_PERMISSIONS"
                   perm_not_enough_cnt += 1
+                  change_set=set(expected_acls)-set(eos_acls)
                elif set(eos_acls) > set(expected_acls):
                   what =  "TOO_MANY_PERMISSIONS"
                   perm_too_many_cnt += 1
@@ -500,7 +501,8 @@ def main():
                   if not args.fix_all_perms:
                      dryrun = True # do not fix anything like that (unless explicitly specified: --fix-all-perms)
 
-               logger.error(" ---  %s --- ACL_NEED_CHANGE  --- %s --- %s --- NEW --- %s --- CURRENT --- %s",what, f.fid, f.file, eos.dump_sysacl(expected_acls),eos.dump_sysacl(eos_acls))
+               logger.error(" ---  %s --- ACL_NEED_CHANGE  --- %s --- %s --- ACL_CHANGE_SET %s --- NEW --- %s --- CURRENT --- %s",what, f.fid, f.file, eos.dump_sysacl(change_set), eos.dump_sysacl(expected_acls),eos.dump_sysacl(eos_acls))
+               logger.error("ACL_CHANGE_SET2 %s %s",eos.dump_sysacl(change_set),f.file)
                eos.set_sysacl(f.file,eos.dump_sysacl(expected_acls),dryrun=dryrun)
                fixed_cnt += 1
             else:
@@ -538,11 +540,11 @@ def main():
 
                extra_acls = eos_acls-db_acls
                if extra_acls:
-                  logger.warning("EXTRA_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,eos.dump_sysacl(squash(extra_acls)),owner,f.xattr['sys.acl'], eos.dump_sysacl(squash(db_acls)))
+                  logger.warning("EXTRA_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,eos.dump_sysacl(cernbox_utils.sharing.squash(extra_acls)),owner,f.xattr['sys.acl'], eos.dump_sysacl(cernbox_utils.sharing.squash(db_acls)))
 
                missing_acls = db_acls-eos_acls
                if missing_acls:
-                  logger.error("MISSING_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,missing_acls,owner,f.xattr['sys.acl'], eos.dump_sysacl(squash(db_acls)))
+                  logger.error("MISSING_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,missing_acls,owner,f.xattr['sys.acl'], eos.dump_sysacl(cernbox_utils.sharing.squash(db_acls)))
                   break
       logger.info('verified %d shares and %d eos paths'%(len(shares),len(shared_fids)))
    logger.info("OK")
