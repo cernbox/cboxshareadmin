@@ -314,23 +314,94 @@ def main():
 
          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
 
+         # Verify if share points to a valid storage entity
+         try:
+            f=eos.fileinfo("inode:"+fid)
+
+            if f.file.startswith(config['eos_recycle_dir']):
+               # eos entry is in the trashbin
+               logger.error("TRASHBIN_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               logger.error("FIX: DELETE %s",s)
+               if args.fix:
+                  db.delete_share(s.id)
+               continue
+         except subprocess.CalledProcessError,x:
+            if x.returncode == 2:
+               # eos entry does not exist
+               logger.error("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               logger.error("FIX: DELETE %s",s)
+               if args.fix:
+                  db.delete_share(s.id)
+               continue
+
+         # share pointing outside of the home directories area
+         # we do not validate these spaces later so we do not add these for subsequent verification
+         if not os.path.normpath(f.file).startswith(config['eos_prefix']) and not os.path.normpath(f.file).startswith(config['eos_project_prefix']):
+            logger.critical("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
+            #continue
+
+         # NOT-AT-TOP-LEVELE SHARES ARE OK
+         #if len(os.path.normpath(f.file).split("/"))>6:
+         #   logger.error("NOT_AT_TOP_LEVEL_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
+         #else:
+ 
+
+         # Verify duplicate shares
+
          unique_key = (fid,s.share_with,s.uid_owner)
 
          try:
-            other_share_ids = unique_share_keys[unique_key]
-            # TODO: different or the same ACLs?
-            logger.error("DUPLICATE_SHARE other_share_id=%s id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",other_share_ids,s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
-            disable_deep_check = True
-            continue
-         except KeyError:
-             unique_share_keys.setdefault(unique_key,[])
-             unique_share_keys[unique_key].append(s.id)
+            existing_share = unique_share_keys[unique_key]
+          
+            perm1 = cernbox_utils.sharing.share2acl(existing_share).bits # older (shares are sorted by sid which grows in time)
+            perm2 = cernbox_utils.sharing.share2acl(s).bits # newer (current)
 
-         unique_share_keys.setdefault((fid,s.share_with,s.uid_owner),True)
+
+            logger.error("DUPLICATE_SHARE older_share: id1 %s perm1 %s stime1 %s; newer_share: id2 %d perm2 %s stime2 %s (owner=%s sharee=%s target='%s' fid=%s)",existing_share.id,perm1,existing_share.stime,s.id,perm2,s.stime,s.uid_owner,s.share_with,s.file_target,fid)
+
+
+            assert(perm1 in ['rx','rwx+d']) #we don't understand other permissions
+            assert(perm2 in ['rx','rwx+d']) #we don't understand other permissions
+
+            # here there may be multiple strategies how to fix duplicates
+
+            # exact duplicates are safe to remove
+            if perm1 == perm2:
+               logger.error("FIX: exact duplicates, will delete older share: %s",existing_share.id)
+               if args.fix:
+                  db.delete_share(existing_share.id)
+                  unique_share_keys[unique_key] = s                  
+            else:
+               logger.error("duplicate share with different permissions, delete manually one of: %s %s",existing_share.id,s.id)
+               disable_deep_check = True
+
+            continue
+
+            # keep the share with stronger permissions or prefer a newer one
+            #if perm2 == 'rwx+d' or (perm2 == perm1 == 'rx'):
+            #   logger.error("FIX1: (older) DELETE %s",existing_share)
+            #   if args.fix:
+            #      db.delete_share(existing_share.id)
+            #   unique_share_keys[unique_key] = s
+            #else:
+            #   logger.error("FIX1:  (weaker) DELETE %s",s)
+            #   if args.fix:
+            #      db.delete_share(s.id)
+
+
+            # check the actual ACL on eos (if exists) and stick to this one
+            # eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
+
+         except KeyError:
+            unique_share_keys[unique_key] = s
 
          if s.file_target.count("/")>1:
             logger.error("FILE_TARGET_MULTIPLE_SLASH_PROBLEM id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
-            disable_deep_check = True
+            fixed_target='/%s'%os.path.basename(s.file_target)
+            assert("'" not in fixed_target)
+            logger.error("FIX: update target to '%s'",fixed_target)
+            if args.fix:
+               db.update_share(s.id,file_target=fixed_target)
             continue
 
          #if not s.file_target.startswith("/") or s.file_target.count("/")>1:
@@ -341,32 +412,9 @@ def main():
             pwd.getpwnam(s.uid_owner)
          except:
             logger.error("USER_NOT_FOUND: share owner uid %s does not exist",s.uid_owner)
+            continue
 
-         # Verify if share points to a valid storage entity
-         try:
-            f=eos.fileinfo("inode:"+fid)
 
-            if f.file.startswith(config['eos_recycle_dir']):
-               # eos entry is in the trashbin
-               logger.error("TRASHBIN_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
-               continue
-         except subprocess.CalledProcessError,x:
-            if x.returncode == 2:
-               # eos entry does not exist
-               logger.error("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
-               continue
-
-         # share pointing outside of the home directories area (e.g. project spaces)
-         # we do not validate these spaces later so we do not add these for subsequent verification
-         if not os.path.normpath(f.file).startswith(config['eos_prefix']) and not os.path.normpath(f.file).startswith(config['eos_project_prefix']):
-            logger.warning("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
-            #continue
-
-         # NOT-AT-TOP-LEVELE SHARES ARE OK
-         #if len(os.path.normpath(f.file).split("/"))>6:
-         #   logger.error("NOT_AT_TOP_LEVEL_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
-         #else:
-         
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
          
          # this is the expected ACL entry in the shared directory tree
@@ -394,16 +442,13 @@ def main():
                   prefix_paths.setdefault(p1,[])
                   prefix_paths[p1].append(p2)
                   #blacklist_paths.append(p2)  # DISABLE BLACKLISTING
-                  logger.info("NESTED_SHARE: %s %s",p1,p2)
-
+                  #logger.error("NESTED_SHARE: %s %s",p1,p2)
 
       for p in prefix_paths:
          logger.info("Nested shared path %s has shared parents %s",p,prefix_paths[p])
 
 
       # blackist duplicate shares
-
-
 
       logger.info("Expected shared paths with visibility to others (%s)",len(shared_acls))
       for p,acl in shared_acls.items():

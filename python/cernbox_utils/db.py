@@ -91,6 +91,32 @@ class ShareDB:
 
 #   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
 
+   # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
+
+   def update_share(self,id,file_target=None):
+
+      cur = self.db.cursor()
+      logger = cernbox_utils.script.getLogger('db')
+      
+      set_cmd = []
+
+      if file_target is not None:
+         assert("'" not in file_target)
+         set_cmd.append("file_target = '%s'"%file_target)
+
+      if not set_cmd:
+         raise ValueError("nothing to set")
+
+      set_cmd = ",".join(set_cmd)
+
+      sql="UPDATE oc_share SET %s WHERE id=%d;"%(set_cmd,id)
+
+      logger.error(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
    def delete_share(self,id):
       """ Delete single share represented by id.
       """
@@ -100,12 +126,10 @@ class ShareDB:
       logger = cernbox_utils.script.getLogger('db')
 
       sql="DELETE FROM oc_share WHERE id=%d;"%int(id)
-      logger.debug(sql)
-      cur.execute(sql)
       
+      logger.error(sql) # FIXME: debug?
+      cur.execute(sql)
       self.db.commit()
-
-      return
 
       # Check referential integrity.      
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
