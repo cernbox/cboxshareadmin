@@ -1,0 +1,81 @@
+# SIMPLE CERNBOX LINK SHARE CLI
+#
+# This is a temporary script. It is not supported. It will stop working at some point.
+# Feedback to Kuba @ CERN.
+# 05/2017
+
+function syntax_error {
+    cat <<EOF
+syntax: cernbox-share-link FILEPATH AUTH EXTRA_METADATA+
+
+Mandatory:
+FILEPATH: relative path to the home directory (or project space) of the authenticated user (owner)
+AUTH: authentication method (as per curl options)
+
+Optional:
+EXTRA_METADATA: additional parameters to set for the share
+   - expireDate=<YYYY-MM-DD> 
+   - password=<string>
+
+EXAMPLES:
+
+cernbox-share-link X/Y/Z "-u kuba:passwd" : will share directory /eos/user/k/kuba/X/Y/Z
+cernbox-share-link X/Y/Z "-u kuba"        : will prompt for password and will share directory as above
+cernbox-share-link A.txt "-n"             : will read ~/.netrc credential (see FILES below) for user "boxsvc" and will share file /eos/project/c/cernbox/A.txt
+
+cernbox-share-link A.txt "-n" expireDate=2017-06-01 password=abc : as above but also set the expiry date and password
+
+FILES:
+
+~/.netrc:
+machine cernbox.cern.ch login boxsvc password xxxxx
+
+ERROR: missing arguments
+
+EOF
+    exit 2
+}
+
+if [ -z $1 ]; then
+    syntax_error
+fi
+
+if [ -z $2 ]; then
+    syntax_error
+fi
+
+if [ -z $3 ]; then
+    syntax_error
+fi
+
+out=`mktemp /tmp/cernbox-share-link.XXXXX`
+
+A_PATH=$1
+A_AUTH=$2
+
+shift 2
+
+A_METADATA=$@
+
+curl -s -X POST -d "path=${A_PATH}" -d "shareType=3" -o $out https://cernbox.cern.ch/ocs/v1.php/apps/files_sharing/api/v1/shares ${A_AUTH}
+
+token=`grep '<token>' $out`
+sid=`grep '<id>' $out`
+
+if [ -z $token ]; then
+    cat $out
+    echo "ERROR: wrong username/password or target file/directory not found"
+else
+    token=`echo $token | sed 's+<token>++g'`
+    token=`echo $token | sed 's+</token>++g'`
+
+    sid=`echo $sid | sed 's+<id>++g'`
+    sid=`echo $sid | sed 's+</id>++g'`
+
+    echo URL: https://cernbox.cern.ch/index.php/s/$token
+
+    for PARAM in ${A_METADATA}; do
+	curl -s -X PUT -d $PARAM  -o $out https://cernbox.cern.ch/ocs/v1.php/apps/files_sharing/api/v1/shares/$sid ${A_AUTH}
+    done
+
+fi
