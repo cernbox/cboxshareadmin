@@ -36,7 +36,7 @@ class EOS:
 
         eos = self._eoscmd(role,'file info',quote(spec),'-m')
                 
-        return parse_mline(runcmd(eos,echo=False)[1])
+        return _parse_mline(runcmd(eos,echo=False)[1])
     
     def fileinfo_r(self,path,type="",maxdepth=None,role=None):
 
@@ -51,7 +51,7 @@ class EOS:
             #logger.debug("fileinfo: %s",mline)
             mline=mline.strip()
             if mline: # skip empty lines
-                r.append(parse_mline(mline))
+                r.append(_parse_mline(mline))
         return r
 
     def set_sysacl(self,path,acl,role=None,dryrun=True):
@@ -98,7 +98,7 @@ class EOS:
 # unit tests
 
 def test_parse_mline(line):
-    print parse_mline("keylength.file=127 file=/eos/user/proc/recycle/2766/69973/#:#eos#:#user#:#c#:#cboxtu#:#smashbox-2015-06-12-163606-cboxsls.cern.ch#:#.00000000002ce1be.d container=0 files=20 mtime=1434976186.965261700 ctime=1434976186.965261700 mode=42700 uid=69973 gid=2766 fxid=002ce1be fid=2941374 ino=2941374 pid=356735 pxid=0005717f etag=2941374:1434976186 xattrn=sys.acl xattrv=u:cboxtu:rwx!m,u:kuba:x,u:ourense:x xattrn=sys.allow.oc.sync xattrv=1 xattrn=sys.forced.atomic xattrv=1 xattrn=sys.forced.blockchecksum xattrv=crc32c xattrn=sys.forced.blocksize xattrv=4k xattrn=sys.forced.checksum xattrv=adler xattrn=sys.forced.layout xattrv=replica xattrn=sys.forced.maximumsize xattrv=10000000000 xattrn=sys.forced.maxsize xattrv=10000000000 xattrn=sys.forced.nstripes xattrv=2 xattrn=sys.forced.space xattrv=default xattrn=sys.mtime.propagation xattrv=1 xattrn=sys.recycle xattrv=/eos/user/proc/recycle/ xattrn=sys.versioning xattrv=10")
+    print _parse_mline("keylength.file=127 file=/eos/user/proc/recycle/2766/69973/#:#eos#:#user#:#c#:#cboxtu#:#smashbox-2015-06-12-163606-cboxsls.cern.ch#:#.00000000002ce1be.d container=0 files=20 mtime=1434976186.965261700 ctime=1434976186.965261700 mode=42700 uid=69973 gid=2766 fxid=002ce1be fid=2941374 ino=2941374 pid=356735 pxid=0005717f etag=2941374:1434976186 xattrn=sys.acl xattrv=u:cboxtu:rwx!m,u:kuba:x,u:ourense:x xattrn=sys.allow.oc.sync xattrv=1 xattrn=sys.forced.atomic xattrv=1 xattrn=sys.forced.blockchecksum xattrv=crc32c xattrn=sys.forced.blocksize xattrv=4k xattrn=sys.forced.checksum xattrv=adler xattrn=sys.forced.layout xattrv=replica xattrn=sys.forced.maximumsize xattrv=10000000000 xattrn=sys.forced.maxsize xattrv=10000000000 xattrn=sys.forced.nstripes xattrv=2 xattrn=sys.forced.space xattrv=default xattrn=sys.mtime.propagation xattrv=1 xattrn=sys.recycle xattrv=/eos/user/proc/recycle/ xattrn=sys.versioning xattrv=10")
 
 
 ##############################################################################
@@ -106,7 +106,7 @@ def test_parse_mline(line):
 
 import os.path
 
-def parse_mline(line):
+def _parse_mline(line):
     """ Parse eos montoring output format (-m).
 
     Return dictionary with keys. Extended attributes are in an embedded dictionary accessible with 'xattr' key.
