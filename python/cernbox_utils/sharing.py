@@ -32,6 +32,22 @@ def is_egroup(name):
    return '-' in name
 
 
+def update_acls(fid,eos,db,owner=None):
+    """ Simple update strategy: override the whole tree in top-down order.
+
+    finfo 
+    """
+    
+    nodes = compute_acls(fid,eos,db,owner)
+
+    # PENDING: send this stuff to EOS to be processed server-side
+    # it is processed in order...
+    for node in nodes:
+        print "eos attr -r set  sys.acl='%s' %s"%(eos.dump_sysacl(node.share_acl + [eos.AclEntry(entity="u",name="wwweos",bits="rx")]),node.file)
+    
+
+    return 0
+    
 
 def compute_acls(fid,eos,db,owner=None):
     """ Compute sharing ACLs for the directory tree specified by fid.
@@ -41,7 +57,6 @@ def compute_acls(fid,eos,db,owner=None):
     The share_acl specifies the full list of ACLs for the node which result from any parent shares.
 
     The first item is the directory node specified by fid. The following items are shared subdirectories (if any).
-
     The list fully describes the ACL status of the tree rooted at fid and is sorted in top-down order. 
 
     The share_acl entries are normalized:
