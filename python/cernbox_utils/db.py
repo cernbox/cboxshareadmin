@@ -93,6 +93,43 @@ class ShareDB:
 
    # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
 
+   def insert_folder_share(self,owner,sharee,fid,file_target,permissions,stime=None):
+      cur = self.db.cursor()
+      logger = cernbox_utils.script.getLogger('db')
+
+      assert(all(c.isalnum() for c in owner))
+      assert(all(c.isalnum() or c=='-' for c in sharee)) # egroups may have dash in the name
+
+      if '-' in sharee:
+         share_type = 1 # group
+      else:
+         share_type = 0 # user
+
+      assert(fid>0)
+      assert(permissions>=0)
+      assert(stime is None or stime>0)
+      assert(file_target!="")
+
+      def quote(x):
+         return '"'+x+'"'
+      
+      item_source=fid
+      item_target=quote("/%d"%fid)
+      file_source=fid
+      file_target=quote(file_target)
+      
+      if stime is None:
+         import time
+         stime = time.time()
+
+
+      sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),item_source,item_target,file_source,file_target,permissions,stime);
+
+      logger.error(sql)
+      cur.execute(sql)
+      #self.db.commit()
+
+
    def update_share(self,id,file_target=None):
 
       cur = self.db.cursor()
@@ -129,7 +166,7 @@ class ShareDB:
       
       logger.error(sql) # FIXME: debug?
       cur.execute(sql)
-      self.db.commit()
+      #self.db.commit()
 
       # Check referential integrity.      
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
