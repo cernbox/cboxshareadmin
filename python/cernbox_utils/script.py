@@ -92,7 +92,10 @@ def runcmd(cmd,ignore_exitcode=False,echo=True,allow_stderr=True,shell=True,log_
         if log_warning:
             logger.warning(msg)
         if not ignore_exitcode:
-            raise subprocess.CalledProcessError(process.returncode,cmd)
+            x=subprocess.CalledProcessError(process.returncode,cmd)
+            x.stderr=stderr
+            x.stdout=stdout
+            raise x
 
     return (process.returncode, stdout, stderr)
 
