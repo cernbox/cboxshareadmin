@@ -30,6 +30,8 @@ import os, os.path, sys
 import subprocess
 
 def quote(s):
+   if not s:
+      s=''
    return "'"+s+"'"
 
 def main():
@@ -40,7 +42,7 @@ def main():
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
 
-   subcmd = subparser.add_parser('add', help="add share to the system")
+   subcmd = subparser.add_parser('add', help="add a share to the system")
    #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
    subcmd.add_argument("path", help="path on storage")
    subcmd.add_argument("owner", help="share owner")
@@ -49,15 +51,21 @@ def main():
 
    subcmd = subparser.add_parser('remove', help="remove share the system")
    #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
-   subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
+   #subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
    subcmd.add_argument("path", help="path on storage")
+   subcmd.add_argument("owner", help="share owner")
    subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
 
    subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
-   subcmd.add_argument("pathspec", help="path or fid:n")
+   subcmd.add_argument("pathspec", help="path or inode:n")
    #subcmd.add_argument("owner", help="owner of the share")
 
-   subcmd = subparser.add_parser('overview', help="provide overview of shares per user or for all users")
+   subcmd = subparser.add_parser('list', help="list shares of a user on stdout in a way suitable for programmatic parsing")
+   subcmd.add_argument("owner", help="specify owner")
+   subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares int he output")
+   subcmd.add_argument("--tree", default=False, action='store_true', help="enable tree-like view")   
+
+   subcmd = subparser.add_parser('summary', help="provide overview of shares per user or for all users")
    subcmd.add_argument("shares_owner", help="'-' to check all users in the system")
    subcmd.add_argument("--sort-by", default="all", action='store', help="sort output by the number of: 'all' shares, 'link' shares, 'regular' shares ")   
 
@@ -99,31 +107,114 @@ def main():
 
       import cernbox_utils.sharing
 
-      if args.pathspec.startswith("fid:"):
-         fid = args.pathspec[len("fid:"):]
+      if args.pathspec.startswith("inode:"):
+         fid = args.pathspec[len("inode:"):]
       else:
          fid = eos.fileinfo(args.pathspec).fid
 
-      for f in cernbox_utils.sharing.compute_acls(fid,eos,db,owner=None):
-         print "eos attr -r set  sys.acl='%s' %s"%(eos.dump_sysacl(f.share_acl + [eos.AclEntry(entity="u",name="wwweos",bits="rx")]),f.file)
+      cernbox_utils.sharing.update_acls(fid,eos,db,owner=None)
 
+   if args.cmd in ["remove","add"]:
 
-   if args.cmd == "add":
-      
-      entity,who = parse_sharee(args.sharee)
+      # common code for add and remove
+
+      share_with_entity,share_with_who = parse_sharee(args.sharee)
 
       path = parse_path(args.path)
 
+      from cernbox_utils import db
+      db = db.ShareDB()
+
+      eos = eos.EOS(config['eos_mgm_url'])
+      eos.role=(0,0)
+
+      # find the target
+
+      try:
+         f = eos.fileinfo(args.path)
+      except subprocess.CalledProcessError,x:
+         if 'error: cannot stat' in x.stderr:
+            logger.error("Not found: %s",args.path)
+            sys.exit(2)
+         else:
+            logger.error(repr(x.stderr))
+            sys.exit(2)
+
+      # make sure it is a folder, not a file
+   
+      if not f.is_dir():
+         logger.error("Authenticated shares not supported for individual files... %s",f.file)
+         sys.exit(2)
+
+      # get the top level
+
+      if os.path.normpath(f.file).startswith(os.path.join(config['eos_prefix'],args.owner[0],args.owner)):
+         top_level = os.path.join(config['eos_prefix'],args.owner[0],args.owner)
+      elif os.path.normpath(f.file).startswith(config['eos_project_prefix']):
+         # check eligibility based on admin/writers egroup?
+         raise NotImplemented()
+      else:
+         logger.error("Cannot share outside of home and project directories")
+         sys.exit(2)         
+
+   if args.cmd == "remove":
+      # ... continue from common code above      
+
+      shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.fid)
+
+      if len(shares)>1:
+         logger.error("Multiple shares exist, share ids %s",[s.id for s in shares])
+         sys.exit(2)
+
+      if len(shares)==0:
+         logger.error("Share from user %s to %s does not exist at path %s",args.owner,share_with_who,f.file)
+         sys.exit(2)
+       
+      #print 'would delete',shares[0].id
+      db.delete_share(shares[0].id)
+
+      try:
+         # modify storage ACL      
+         cernbox_utils.sharing.update_acls(f.fid,eos,db,args.owner)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s",x)
+         #rollback the insert?
+         raise
+         sys.exit(2)
+
+
+   if args.cmd == "add":
+      # ... continue from common code above
+
       ACL = {'r':'read','rw':'read-write'}
-      ENTITY = {'u':'user','e':'egroup'}
+      ENTITY = {'u':'user','egroup':'egroup'}
 
-      print "Add",ACL[args.acl],"share for",ENTITY[entity],who,"to tree",args.path
+      logger.info("Add %s share for %s %s to tree %s",ACL[args.acl],ENTITY[share_with_entity],share_with_who,args.path)
 
-      logger.info("Modify storage ACLs and add database entry.")
-      logger.error("NOT YET IMPLEMENTED")
-      sys.exit(1)
+ 
+      # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
+      file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.fid))
 
-      # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
+      # FIXME: poor's man solution: owncloud does not have constraints in the oc_share table
+      # try to insert share entry, bailout if already exists...
+
+      shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.fid)
+
+      if shares:
+         logger.error("Share already exists, share id %d",shares[0].id)
+         sys.exit(2)
+      else:
+         db.insert_folder_share(args.owner,share_with_who,int(f.fid),file_target,0)
+
+      try:
+         # modify storage ACL      
+         cernbox_utils.sharing.update_acls(f.fid,eos,db,args.owner)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s",x)
+         #rollback the insert?
+         raise
+         sys.exit(2)
+
 
    if args.cmd == "show-other-acls":
       #from cernbox_utils import eos
@@ -206,7 +297,51 @@ def main():
 #         else:
 #            print f.file, "no change",eos_acls
 
-   if args.cmd == "overview":
+   if args.cmd == "list":
+
+      from cernbox_utils import db,eos
+
+      if not args.owner.strip():
+         logger.critical("Must provide a shares_owner")
+         return
+
+      db = db.ShareDB()
+      eos = eos.EOS(config['eos_mgm_url'])
+      eos.role=(0,0)
+
+      shares=db.get_share(owner=args.owner)
+   
+      retobj = {}
+
+      import datetime
+      def dtisoformat(x):
+         if x:
+            return x.isoformat()
+         else:
+            return ""
+
+      cnt=0
+      for s in shares:
+         logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+
+         try:
+            share_path = eos.fileinfo("inode:"+s.item_source).file
+         except  subprocess.CalledProcessError,x:
+            if x.returncode == 2:
+               # eos entry does not exist
+               logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
+               share_path=None
+
+
+         if share_path or args.include_broken:
+            retobj[s.id] = {'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
+
+
+      import json
+      print json.dumps(retobj,ensure_ascii=False) # allos unicode characters from eos output
+
+
+   if args.cmd == "summary":
 
       from cernbox_utils import db,eos
 
@@ -458,7 +593,7 @@ def main():
          if args.homedir:
             homedir = args.homedir
          else:
-            homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
+           homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
             #homedir = '/eos/project/c/cmsgem-ge11-production'
             #homedir = '/eos/project/a/atlasweb'
 
@@ -676,7 +811,7 @@ def parse_sharee(sharee):
        if not entity in ['u','egroup']:
           raise ValueError()
     except ValueError:
-       print >> sys.stderr, "ERROR: specify sharee '%s' in u:USER or egroup:GROUP format"%args.sharee
+       print >> sys.stderr, "ERROR: specify sharee '%s' in u:USER or egroup:GROUP format"%sharee
        sys.exit(2)
     return entity,who
 
@@ -687,4 +822,4 @@ def parse_path(path):
     return path
 
 if __name__ == "__main__":
-   main()
+   sys.exit(main())
