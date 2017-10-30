@@ -32,7 +32,7 @@ def is_egroup(name):
    return '-' in name
 
 
-def update_acls(fid,eos,db,owner=None):
+def update_acls(fid,eos,db,owner=None,dryrun=True):
     """ Simple update strategy: override the whole tree in top-down order.
 
     finfo 
@@ -42,8 +42,10 @@ def update_acls(fid,eos,db,owner=None):
 
     # PENDING: send this stuff to EOS to be processed server-side
     # it is processed in order...
+    # WARNING: this deletes any acls set by hand, in the case of wwweos in user homedirs, they is a corresponding share
+    
     for node in nodes:
-        print "eos attr -r set  sys.acl='%s' %s"%(eos.dump_sysacl(node.share_acl + [eos.AclEntry(entity="u",name="wwweos",bits="rx")]),node.file)
+        eos.set_sysacl_r(node.file,eos.dump_sysacl(node.share_acl),dryrun=dryrun)
     
 
     return 0
