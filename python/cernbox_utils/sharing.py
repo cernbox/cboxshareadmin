@@ -8,7 +8,7 @@ def squash(seq):
     return [x for x in seq if not (x in seen or seen_add(x))]
 
 
-
+# convert DB share object inot EOS ACL object
 def share2acl(s):
    from cernbox_utils.eos import EOS as eos
 
@@ -26,6 +26,23 @@ def share2acl(s):
       acl.bits = "rwx+d"
 
    return acl
+
+
+# convert CRUD specification (user) to EOS ACL bits
+def crud2acl(crud):
+    if crud == 'r':
+        return 'rx'
+    if crud == 'rw':
+        return 'rwx+d'
+    raise ValueError(crud)
+
+# convert EOS ACL bits to CRUD specification (user)
+def acl2crud(bits):
+    if bits == 'rx':
+        return 'r'
+    if bits in ['rwx!m','rwx+d']:
+        return 'rw'
+    raise ValueError(crud)
 
 
 def is_egroup(name):
@@ -194,3 +211,20 @@ def compute_acls(fid,eos,db,owner=None):
 
 
     return node_status
+
+def collapse_into_nodes(shares):
+    """
+    Collapse flat share list into a list of nodes.
+    """
+
+    nodes = {}
+
+    for s in shares:
+        nodes.setdefault(s.item_source,set())
+
+        acl=share2acl(s)
+        acl.stime=s.stime
+
+        nodes[s.item_source].add(acl)
+    
+    return nodes
