@@ -58,12 +58,12 @@ def main():
    subcmd = subparser.add_parser('list-shared-by', help="list all shares created by the user")
    subcmd.add_argument("user", help="specify owner")
    subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares in he output")
-   #subcmd.add_argument("--tree", default=False, action='store_true', help="enable tree-like view")   
+   subcmd.add_argument("--flat-list", default=False, action='store_true', help="flat listing with raw DB values")   
 
    subcmd = subparser.add_parser('list-shared-with', help="list all shares given to the user")
    subcmd.add_argument("user", help="specify sharee")
    subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares in he output")
-   #subcmd.add_argument("--tree", default=False, action='store_true', help="enable tree-like view")   
+   subcmd.add_argument("--flat-list", default=False, action='store_true', help="flat listing with raw DB values")   
 
    subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
    subcmd.add_argument("pathspec", help="path or inode:n")
@@ -215,7 +215,6 @@ def main():
       ENTITY = {'u':'user','egroup':'egroup'}
 
       logger.info("Add %s share for %s %s to tree %s",ACL[args.acl],ENTITY[share_with_entity],share_with_who,args.path)
-
  
       # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
       file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.fid))
@@ -341,8 +340,7 @@ def main():
          shares=db.get_share(owner=args.user)
       else:
          shares=db.get_share(sharee=args.user)   
-   
-      retobj = {}
+
 
       import datetime
       def dtisoformat(x):
@@ -351,25 +349,47 @@ def main():
          else:
             return ""
 
-      cnt=0
-      for s in shares:
-         logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(str(s.file_target)))
+      if args.flat_list:
+         cnt=0
+         retobj = {}
+         for s in shares:
+            logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(str(s.file_target)))
 
-         try:
-            share_path = eos.fileinfo("inode:"+s.item_source).file
-         except  subprocess.CalledProcessError,x:
-            if x.returncode == 2:
-               # eos entry does not exist
-               logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
-               share_path=None
-
-
-         if share_path or args.include_broken:
-            retobj[s.id] = {'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
+            try:
+               share_path = eos.fileinfo("inode:"+s.item_source).file
+            except  subprocess.CalledProcessError,x:
+               if x.returncode == 2:
+                  # eos entry does not exist
+                  logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
+                  share_path=None
 
 
-      print_json({'shares':retobj})
+            if share_path or args.include_broken:
+               retobj[s.id] = {'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
 
+
+         print_json({'shares':retobj})
+      else:
+         retobj = []
+         nodes = cernbox_utils.sharing.collapse_into_nodes(shares)
+         for target_id in nodes:
+            try:
+               f = eos.fileinfo("inode:"+target_id)
+               target_path,target_size=f.file,f.treesize
+            except  subprocess.CalledProcessError,x:
+               if x.returncode == 2:
+                  # eos entry does not exist
+                  logger.warning("DANGLING_SHARE inode=%s",target_id)
+                  target_path,target_size=None,0
+
+
+            if target_path or args.include_broken:
+               retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_with' : []})
+               for acl in nodes[target_id]:
+                   retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':cernbox_utils.sharing.acl2crud(acl.bits),'created':datetime.datetime.fromtimestamp(acl.stime).isoformat()})
+
+         print_json({'shares':retobj})
+         
 
    if args.cmd == "summary":
 
@@ -850,6 +870,12 @@ def parse_path(path):
        print >> sys.stderr, "ERROR: path '%s' should start with '%s'"% (path,config['eos_prefix'])
        sys.exit(2)
     return path
+
+def cmd_add(args):
+   pass
+
+def cmd_list_shares(args):
+   
 
 if __name__ == "__main__":
    sys.exit(main())
