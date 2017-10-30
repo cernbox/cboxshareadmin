@@ -54,9 +54,14 @@ class EOS:
                 r.append(_parse_mline(mline))
         return r
 
-    def set_sysacl(self,path,acl,role=None,dryrun=True):
+    def set_sysacl_r(self,path,acl,role=None,dryrun=True):
+        return self.__set_sysacl(path,acl,role,dryrun,'-r')
 
-        eos = self._eoscmd(role,"attr set sys.acl=%s %s"%(quote(acl),quote(path)))
+    def set_sysacl(self,path,acl,role=None,dryrun=True):
+        return self.__set_sysacl(path,acl,role,dryrun,'')
+
+    def __set_sysacl(self,path,acl,role,dryrun,opt):
+        eos = self._eoscmd(role,"attr %s set sys.acl=%s %s"%(opt,quote(acl),quote(path)))
         if dryrun:
             logger.warning("would run: %s",eos)
         else:
