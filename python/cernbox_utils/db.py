@@ -1,7 +1,7 @@
 import cernbox_utils.script
 
 class ShareInfo(cernbox_utils.script.Data):
-   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
+   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
 
 
    def _check_consistency(self):
@@ -125,9 +125,9 @@ class ShareDB:
 
       sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),item_source,item_target,file_source,file_target,permissions,stime);
 
-      logger.error(sql)
+      logger.debug(sql)
       cur.execute(sql)
-      #self.db.commit()
+      self.db.commit()
 
 
    def update_share(self,id,file_target=None):
@@ -148,7 +148,7 @@ class ShareDB:
 
       sql="UPDATE oc_share SET %s WHERE id=%d;"%(set_cmd,id)
 
-      logger.error(sql)
+      logger.debug(sql)
       cur.execute(sql)
       self.db.commit()
 
@@ -164,9 +164,9 @@ class ShareDB:
 
       sql="DELETE FROM oc_share WHERE id=%d;"%int(id)
       
-      logger.error(sql) # FIXME: debug?
+      logger.debug(sql) # FIXME: debug?
       cur.execute(sql)
-      #self.db.commit()
+      self.db.commit()
 
       # Check referential integrity.      
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
