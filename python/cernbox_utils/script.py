@@ -17,6 +17,10 @@ def arg_parser(**kwds):
     group.add_argument('--debug', dest='loglevel', action="store_const", const=logging.DEBUG, help='produce very verbose output')
     #group.add_argument('--verbose', '-v', action="store_true", help='produce more output')
 
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument('--json', dest='json', action="store_true", default=False, help='Use JSON as data exchange format (this is an "API" call by another program). Print result on stdout in a JSON format.')
+
     parser.set_defaults(loglevel=logging.INFO)
 
     return parser
@@ -37,6 +41,8 @@ def configure(config_path):
 
             value = value.strip().strip("'")
             d[key] = value
+
+            #print key,value
 
     config = d
     return config
