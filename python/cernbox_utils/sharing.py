@@ -212,6 +212,9 @@ def compute_acls(fid,eos,db,owner=None):
 
     return node_status
 
+class ShareNode(cernbox_utils.script.Data):
+   _names = ['inode','owner','shares']
+
 def collapse_into_nodes(shares):
     """
     Collapse flat share list into a list of nodes.
@@ -220,11 +223,9 @@ def collapse_into_nodes(shares):
     nodes = {}
 
     for s in shares:
-        nodes.setdefault(s.item_source,set())
 
-        acl=share2acl(s)
-        acl.stime=s.stime
+        nodes.setdefault(s.item_source,ShareNode(inode=s.item_source,owner=s.uid_owner,shares=set()))
 
-        nodes[s.item_source].add(acl)
-    
+        nodes[s.item_source].shares.add(s)
+
     return nodes
