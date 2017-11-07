@@ -29,6 +29,11 @@ logger = None
 
 args = None
 
+eos = None # EOS interface instance
+db = None # DB interface instance
+
+import cernbox_utils
+
 def print_json(obj):
       if args.json:
          import json
@@ -77,12 +82,21 @@ def main():
    subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares in he output")
    subcmd.add_argument("--flat-list", default=False, action='store_true', help="flat listing with raw DB values")   
 
-   subcmd = subparser.add_parser('swan-list-shared-by', help="list all SWAN projects shared by the user")
+   subcmd = subparser.add_parser('swan-list-projects-shared-by', help="list all SWAN projects shared by the user")
    subcmd.add_argument("user", help="specify owner")
    subcmd.add_argument("--project", default=None, action='store', help="specify particular project to list")   
 
-   subcmd = subparser.add_parser('swan-list-shared-with', help="list all SWAN projects shared with the user")
+   subcmd = subparser.add_parser('swan-list-projects-shared-with', help="list all SWAN projects shared with the user")
    subcmd.add_argument("user", help="specify sharee")
+
+   subcmd = subparser.add_parser('swan-update-project-share', help="update share for a SWAN project which will be shared to the specified sharees (and only to them)")
+   subcmd.add_argument("owner", help="share owner")
+   subcmd.add_argument("project", help="project path")
+   subcmd.add_argument("sharees", help="specify sharees",nargs='+')
+
+   subcmd = subparser.add_parser('swan-delete-project-share', help="delete all shares for a SWAN project")
+   subcmd.add_argument("owner", help="share owner")
+   subcmd.add_argument("project", help="project path")
 
    subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
    subcmd.add_argument("pathspec", help="path or inode:n")
@@ -120,7 +134,13 @@ def main():
    logger.info("Using  DB: %s",config['dbhost'])
    logger.info("Using EOS: %s",config['eos_mgm_url'])
 
-   from cernbox_utils import db,eos
+   global eos,db
+   import cernbox_utils.db, cernbox_utils.eos
+   db = cernbox_utils.db.ShareDB()
+   eos = cernbox_utils.eos.EOS(config['eos_mgm_url'])
+   eos.role=(0,0)
+
+   #unit_test_swanprj()
 
    import cernbox_utils.sharing
 
@@ -138,121 +158,19 @@ def main():
 
       cernbox_utils.sharing.update_acls(inode,eos,db,owner=None,dryrun=False)
 
-   if args.cmd in ["remove","add"]:
-
-      # common code for add and remove
-
-      share_with_entity,share_with_who = parse_sharee(args.sharee)
-
-      path = parse_path(args.path)
-
-      from cernbox_utils import db
-      db = db.ShareDB()
-
-      eos = eos.EOS(config['eos_mgm_url'])
-      eos.role=(0,0)
-
-      # find the target
-
-      try:
-         f = eos.fileinfo(args.path)
-      except subprocess.CalledProcessError,x:
-         if 'error: cannot stat' in x.stderr:
-            msg = "Not found: %s"%args.path
-            logger.error(msg)
-            print_json_error(msg)
-            sys.exit(2)
-         else:
-            logger.error(repr(x.stderr))
-            sys.exit(2)
-
-      # make sure it is a folder, not a file
-   
-      if not f.is_dir():
-         msg = "Authenticated shares not supported for individual files... %s"%f.file
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
-
-      # get the top level
-
-      if os.path.normpath(f.file).startswith(os.path.join(config['eos_prefix'],args.owner[0],args.owner)):
-         top_level = os.path.join(config['eos_prefix'],args.owner[0],args.owner)
-      elif os.path.normpath(f.file).startswith(config['eos_project_prefix']):
-         # check eligibility based on admin/writers egroup?
-         print_json_error("NotImplemented")
-         raise NotImplemented()
-      else:
-         msg="Cannot share outside of home and project directories"
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)         
-
    if args.cmd == "remove":
-      # ... continue from common code above      
-
-      shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.ino)
-
-      if len(shares)>1:
-         msg="Multiple shares exist, share ids %s"%[s.id for s in shares]
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
-
-      if len(shares)==0:
-         msg="Share from user %s to %s does not exist at path %s"%(args.owner,share_with_who,f.file)
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
-       
-      #print 'would delete',shares[0].id
-      db.delete_share(shares[0].id)
 
       try:
-         # modify storage ACL      
-         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner)
-      except Exception,x:
-         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
-         print_json_error("Critical error %s"%hash(x))
-         #rollback the insert?
-         raise
+         print_json(cmd_remove(args))
+      except CmdError:
          sys.exit(2)
-
 
    if args.cmd == "add":
-      # ... continue from common code above
-
-      ACL = {'r':'read','rw':'read-write'}
-      ENTITY = {'u':'user','egroup':'egroup'}
-
-      logger.info("Add %s share for %s %s to tree %s",ACL[args.acl],ENTITY[share_with_entity],share_with_who,args.path)
- 
-      # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
-      file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.ino))
-
-      # FIXME: poor's man solution: owncloud does not have constraints in the oc_share table
-      # try to insert share entry, bailout if already exists...
-
-      shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.ino)
-
-      if shares:
-         msg="Share already exists, share id %d"%shares[0].id
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
-      else:
-         db.insert_folder_share(args.owner,share_with_who,int(f.ino),file_target,0)
 
       try:
-         # modify storage ACL      
-         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner,dryrun=False)
-      except Exception,x:
-         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
-         print_json_error("Critical error %s"%hash(x))
-         #rollback the insert?
-         raise
+         print_json(cmd_add(args))
+      except CmdError:
          sys.exit(2)
-
 
    if args.cmd == "show-other-acls":
       #from cernbox_utils import eos
@@ -343,9 +261,9 @@ def main():
          sys.exit(2)
 
 
-   if args.cmd in ["swan-list-shared-by","swan-list-shared-with"]:
+   if args.cmd in ["swan-list-projects-shared-by","swan-list-projects-shared-with"]:
 
-      if args.cmd == "swan-list-shared-with":
+      if args.cmd == "swan-list-projects-shared-with":
          args.project = None
 
       try:
@@ -353,7 +271,20 @@ def main():
       except CmdError:
          sys.exit(2)
 
- 
+   if args.cmd == "swan-update-project-share":
+
+      try:
+         print_json(cmd_swan_update_share(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "swan-delete-project-share":
+
+      try:
+         print_json(cmd_swan_delete_share(args))
+      except CmdError:
+         sys.exit(2)
+
    if args.cmd == "summary":
 
       from cernbox_utils import db,eos
@@ -834,11 +765,200 @@ def parse_path(path):
        sys.exit(2)
     return path
 
+def parse_swan_project(swanprj):
+   if not is_swanprj(swanprj):
+      print >> sys.stderr, "ERROR: SWAN project name wrongly specified '%s'"% (swanprj)
+      sys.exit(2)
+
 class CmdError(Exception):
    pass
 
+
+def get_swan_project_fileinfo(owner,swan_project):
+
+      p = swanprj2path(owner,swan_project)
+
+      if not p:
+         print_json_error("Project name misformatted: %s"%(swan_project))
+         sys.exit(2) # TODO: FIX RC => 400 Bad Request
+
+      try:
+         return check_share_target(p,owner)
+      except  subprocess.CalledProcessError,x:
+         if x.returncode == 2:
+            print_json_error("Project not found: %s owner %s"%(swan_project,owner))
+            sys.exit(2) 
+         else:
+            raise
+
+def cmd_swan_update_share(args):
+   parse_swan_project(args.project)
+   return _cmd_swan_update_share(args.project, args.owner, args.sharees)
+
+def cmd_swan_delete_share(args):
+   parse_swan_project(args.project)
+   return _cmd_swan_update_share(args.project, args.owner, [])
+
+def _cmd_swan_update_share(swan_project, owner, sharees):
+
+   f = get_swan_project_fileinfo(owner, swan_project)
+
+   shares=db.get_share(owner=owner,fid=f.ino)
+
+   sharees_requested = [ parse_sharee(x)[1] for x in sharees ]
+
+   db_update_cnt = 0
+
+   for s in shares:
+      if s.share_with not in sharees_requested:
+         db.delete_share(s.id)
+         db_update_cnt += 1
+
+   sharees_existing = [ s.share_with for s in shares ]
+
+   for sharee in sharees:
+      if parse_sharee(sharee)[1] not in sharees_existing:
+         _cmd_add(owner,f.file,sharee,"r",storage_acl_update=False)
+         db_update_cnt += 1
+
+   try:
+      logger.info("Updated %d share entries",db_update_cnt)
+
+      if db_update_cnt:
+         # modify storage ACL      
+         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner)
+
+   except Exception,x:
+      logger.critical("Something went pretty wrong... %s %s",hash(x),x)
+      print_json_error("Critical error %s"%hash(x))
+      #rollback the insert?
+      raise
+      sys.exit(2)
+
+def cmd_remove(args):
+
+      share_with_entity,share_with_who = parse_sharee(args.sharee)
+
+      path = parse_path(args.path)
+
+      f = check_share_target(path, args.owner)
+
+      shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.ino)
+
+      if len(shares)>1:
+         msg="Multiple shares exist, share ids %s"%[s.id for s in shares]
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)
+
+      if len(shares)==0:
+         msg="Share from user %s to %s does not exist at path %s"%(args.owner,share_with_who,f.file)
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)
+       
+      #print 'would delete',shares[0].id
+      db.delete_share(shares[0].id)
+
+      try:
+         # modify storage ACL      
+         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
+         print_json_error("Critical error %s"%hash(x))
+         #rollback the insert?
+         raise
+         sys.exit(2)
+
+
 def cmd_add(args):
-   pass
+
+   return _cmd_add(args.owner,args.path,args.sharee,args.acl)
+
+def _cmd_add(owner,path,sharee,acl,storage_acl_update=True):
+
+      share_with_entity,share_with_who = parse_sharee(sharee)
+
+      path = parse_path(path)
+      
+      f = check_share_target(path, owner)
+
+      # ... continue from common code above
+
+      ACL = {'r':'read','rw':'read-write'}
+      ENTITY = {'u':'user','egroup':'egroup'}
+
+      logger.info("Add %s share for %s %s to tree %s",ACL[acl],ENTITY[share_with_entity],share_with_who,path)
+ 
+      # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
+      file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.ino))
+
+      # FIXME: poor's man solution: owncloud does not have constraints in the oc_share table
+      # try to insert share entry, bailout if already exists...
+
+      shares=db.get_share(sharee=share_with_who,owner=owner,fid=f.ino)
+
+      if shares:
+         msg="Share already exists, share id %d"%shares[0].id
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)
+      else:
+         db.insert_folder_share(owner,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
+
+      try:
+         # modify storage ACL
+         if storage_acl_update:
+            cernbox_utils.sharing.update_acls(f.ino,eos,db,owner,dryrun=False)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
+         print_json_error("Critical error %s"%hash(x))
+         #rollback the insert?
+         raise
+         sys.exit(2)
+
+
+
+def check_share_target(path,owner):
+
+      # find the target
+
+      try:
+         f = eos.fileinfo(path)
+      except subprocess.CalledProcessError,x:
+         if 'error: cannot stat' in x.stderr:
+            msg = "Not found: %s"%path
+            logger.error(msg)
+            print_json_error(msg)
+            sys.exit(2)
+         else:
+            logger.error(repr(x.stderr))
+            sys.exit(2)
+
+      # make sure it is a folder, not a file
+   
+      if not f.is_dir():
+         msg = "Authenticated shares not supported for individual files... %s"%f.file
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)
+
+      # get the top level
+
+      if os.path.normpath(f.file).startswith(os.path.join(config['eos_prefix'],owner[0],owner)):
+         top_level = os.path.join(config['eos_prefix'],owner[0],owner)
+      elif os.path.normpath(f.file).startswith(config['eos_project_prefix']):
+         # check eligibility based on admin/writers egroup?
+         print_json_error("NotImplemented")
+         raise NotImplemented()
+      else:
+         msg="Cannot share outside of home and project directories"
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)         
+
+      return f
+
 
 def cmd_list_shares(args):
 
@@ -851,20 +971,11 @@ def cmd_swan_list_projects(args):
    
    args.include_broken = False
    args.flat_list = False
-   args.cmd = args.cmd[len('swan-'):]
+   args.cmd = args.cmd.replace("swan-list-projects-","list-")
 
    if args.project:
-      from cernbox_utils import eos
-      eos = eos.EOS(config['eos_mgm_url'])
-      eos.role=(0,0)
-      try:
-         f=eos.fileinfo(os.path.join(config['eos_prefix'],args.user[0],args.user,args.project))
-      except  subprocess.CalledProcessError,x:
-         if x.returncode == 2:
-            print_json_error("Project not found: %s"%args.project)
-            sys.exit(2)
-         else:
-            raise
+      parse_swan_project(args.project)
+      f = get_swan_project_fileinfo(args.user,args.project)
       inode=f.ino
    else:
       inode = None
@@ -874,16 +985,60 @@ def cmd_swan_list_projects(args):
    retobj = []
    
    for x in retbuf:
-      assert(x['path'].startswith(config['eos_prefix']))
-      p = os.path.normpath(x['path'][len(config['eos_prefix']):]).lstrip('/')
-      p = p.split('/')[2:]
 
-      if p[0] == 'SWAN Projects':
-         x['project']='/'.join(p)
+      swanprj = path2swanprj(x['path'])
+
+      if swanprj:
+         x['project']=swanprj
          retobj.append(x)
 
    return {'shares':retobj}
 
+
+# convert SWAN project name to EOS path and vice-versa
+
+def is_swanprj(pname):
+   p = os.path.split(os.path.normpath(pname))
+   return len(p)==2 and p[0]=='SWAN Projects'
+
+def swanprj2path(owner,pname):
+   if not is_swanprj(pname):
+      return None
+   else:
+      return os.path.join(config['eos_prefix'],owner[0],owner,pname)
+
+def path2swanprj(path):
+   if not path.startswith(config['eos_prefix']):
+      return None
+
+   p = os.path.normpath(path[len(config['eos_prefix']):])
+
+   p = "/".join(p.split('/')[2:])
+
+   if is_swanprj(p):
+      return p
+   else:
+      return None
+
+def unit_test_swanprj():
+
+   print "--- UNIT TEST SWANPRJ: BEGIN"
+
+   assert(os.path.normpath(config['eos_prefix']) == '/eos/scratch/user')
+
+   print is_swanprj("SWAN Projects/X") # => True
+   print is_swanprj("SWAN Projects/X/Y") # => False
+   print is_swanprj("SWAN Projects/") # => False
+   print is_swanprj("SWAN Projects") # => False
+   print is_swanprj("X") # => False
+   print is_swanprj("") # => False
+
+   print swanprj2path('moscicki',"X") # => None
+   print swanprj2path('moscicki',"SWAN Projects/X") # => /eos/scratch/user/m/moscicki/SWAN Projects/X
+
+   print path2swanprj("/eos/scratch/user/m/moscicki/SWAN Projects/X") # => SWAN Projects/X
+
+   print "--- UNIT TEST SWANPRJ: END"
 
 def _cmd_list_shares(args,fid=None):
    from cernbox_utils import db,eos,sharing
@@ -900,7 +1055,6 @@ def _cmd_list_shares(args,fid=None):
       shares=db.get_share(owner=args.user,fid=fid)
    else:
       shares=db.get_share(sharee=args.user,fid=fid)   
-
 
    import datetime
    def dtisoformat(x):
@@ -947,7 +1101,7 @@ def _cmd_list_shares(args,fid=None):
             retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
             for s in nodes[target_id].shares:
                acl = sharing.share2acl(s)
-               retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':sharing.acl2crud(acl.bits),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
+               retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':sharing.db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
 
       return retobj
 
