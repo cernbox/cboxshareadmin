@@ -27,6 +27,20 @@ def share2acl(s):
 
    return acl
 
+def crud2db(crud):
+    if crud == 'r':
+        return 1
+    if crud == 'rw':
+        return 15
+    raise ValueError(crud)
+
+def db2crud(db):
+    if db == 1:
+        return "r"
+    if db == 15:
+        return "rw"
+    raise ValueError(db)
+
 
 # convert CRUD specification (user) to EOS ACL bits
 def crud2acl(crud):
