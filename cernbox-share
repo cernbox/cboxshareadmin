@@ -826,7 +826,7 @@ def _cmd_swan_update_share(swan_project, owner, sharees):
 
       if db_update_cnt:
          # modify storage ACL      
-         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner)
+         cernbox_utils.sharing.update_acls(f.ino,eos,db,args.owner,dryrun=False)
 
    except Exception,x:
       logger.critical("Something went pretty wrong... %s %s",hash(x),x)
@@ -999,7 +999,7 @@ def cmd_swan_list_projects(args):
 
 def is_swanprj(pname):
    p = os.path.split(os.path.normpath(pname))
-   return len(p)==2 and p[0]=='SWAN Projects'
+   return len(p)==2 and p[0]=='SWAN_projects'
 
 def swanprj2path(owner,pname):
    if not is_swanprj(pname):
@@ -1026,17 +1026,17 @@ def unit_test_swanprj():
 
    assert(os.path.normpath(config['eos_prefix']) == '/eos/scratch/user')
 
-   print is_swanprj("SWAN Projects/X") # => True
-   print is_swanprj("SWAN Projects/X/Y") # => False
-   print is_swanprj("SWAN Projects/") # => False
-   print is_swanprj("SWAN Projects") # => False
+   print is_swanprj("SWAN_projects/X") # => True
+   print is_swanprj("SWAN_projects/X/Y") # => False
+   print is_swanprj("SWAN_projects/") # => False
+   print is_swanprj("SWAN_projects") # => False
    print is_swanprj("X") # => False
    print is_swanprj("") # => False
 
    print swanprj2path('moscicki',"X") # => None
-   print swanprj2path('moscicki',"SWAN Projects/X") # => /eos/scratch/user/m/moscicki/SWAN Projects/X
+   print swanprj2path('moscicki',"SWAN_projects/X") # => /eos/scratch/user/m/moscicki/SWAN_projects/X
 
-   print path2swanprj("/eos/scratch/user/m/moscicki/SWAN Projects/X") # => SWAN Projects/X
+   print path2swanprj("/eos/scratch/user/m/moscicki/SWAN_projects/X") # => SWAN_projects/X
 
    print "--- UNIT TEST SWANPRJ: END"
 
