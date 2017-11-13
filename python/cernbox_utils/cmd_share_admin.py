@@ -35,10 +35,9 @@ def verify(args,config,eos,db):
          fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
          logger.addHandler(fh)
 
-
-      #db = db.ShareDB()
-
       shares=db.get_share(owner=args.shares_owner,share_type="regular")
+
+      # if needed this can be used to split read from write traffic in order not to overload the instance
 
       # for write ops
       #eos_master = eos.EOS(config['eos_mgm_url'])
@@ -99,12 +98,6 @@ def verify(args,config,eos,db):
             logger.critical("OUTSIDE_SHARE share %s %s is outside of %s (%s)",s.id,s.file_target,config['eos_prefix'],f.file)
             #continue
 
-         # NOT-AT-TOP-LEVELE SHARES ARE OK
-         #if len(os.path.normpath(f.file).split("/"))>6:
-         #   logger.error("NOT_AT_TOP_LEVEL_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s actual_path=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,quote(f.file))
-         #else:
- 
-
          # Verify duplicate shares
 
          unique_key = (fid,s.share_with,s.uid_owner)
@@ -135,21 +128,6 @@ def verify(args,config,eos,db):
 
             continue
 
-            # keep the share with stronger permissions or prefer a newer one
-            #if perm2 == 'rwx+d' or (perm2 == perm1 == 'rx'):
-            #   logger.error("FIX1: (older) DELETE %s",existing_share)
-            #   if args.fix:
-            #      db.delete_share(existing_share.id)
-            #   unique_share_keys[unique_key] = s
-            #else:
-            #   logger.error("FIX1:  (weaker) DELETE %s",s)
-            #   if args.fix:
-            #      db.delete_share(s.id)
-
-
-            # check the actual ACL on eos (if exists) and stick to this one
-            # eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
-
          except KeyError:
             unique_share_keys[unique_key] = s
 
@@ -161,8 +139,6 @@ def verify(args,config,eos,db):
             if args.fix:
                db.update_share(s.id,file_target=fixed_target)
             continue
-
-         #if not s.file_target.startswith("/") or s.file_target.count("/")>1:
 
          # check if owner still exists, if not issue error but treat the share normally
          # otherwise this is dangerous if local password database is not fully synchronized with ldap!
@@ -360,44 +336,6 @@ def verify(args,config,eos,db):
             
       return 
 
-      # compare the acl list calculated from share db with the actual acl list on eos in the shared directory tree
- 
-      for fid in shared_fids:
-
-         f=eos.fileinfo("inode:"+fid)
-
-         db_acls = set(shared_fids[fid])
-
-         # add the ACL for the owner
-         try:
-            owner = pwd.getpwuid(int(f.uid)).pw_name
-         except KeyError,x:
-            logger.error("USER_NOT_FOUND: file owner uid %s does not exist, skipping... %s",f.uid,f.file)
-            continue
-
-         db_acls.add(eos.AclEntry(entity='u',name=owner,bits='rwx!m'))
-
-         # here we recursively check if the same set of db_acls is consistenly applied in the whole tree
-         # the first entry reported is the shared directory itself (the top level of the tree)
-         # we will need maybe to prune bottom paths to avoid too many error messages for large trees
-         for f in eos.fileinfo_r(f.file,type="-d"):
-            if not is_special_folder(f.file):
-               logger.debug("checking shared tree: %s",str(f.file))
-               eos_acls = set(eos.parse_sysacl(f.xattr['sys.acl']))
-
-               extra_acls = eos_acls-db_acls
-               if extra_acls:
-                  logger.warning("EXTRA_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,eos.dump_sysacl(cernbox_utils.sharing.squash(extra_acls)),owner,f.xattr['sys.acl'], eos.dump_sysacl(cernbox_utils.sharing.squash(db_acls)))
-
-               missing_acls = db_acls-eos_acls
-               if missing_acls:
-                  logger.error("MISSING_ACL path '%s': %s owner: %s ACTUAL %s EXPECTED %s",f.file,missing_acls,owner,f.xattr['sys.acl'], eos.dump_sysacl(cernbox_utils.sharing.squash(db_acls)))
-                  break
-      logger.info('verified %d shares and %d eos paths'%(len(shares),len(shared_fids)))
-   
-      logger.info("OK")
-
-
 def remove_orphan_xbits(args,config,eos,db):
       logfn = ""
 
@@ -436,14 +374,6 @@ def remove_orphan_xbits(args,config,eos,db):
             pass
 
       logger.info("Scanned %d directories, fixed %d directories, logfile: %s",cnt,fixed_cnt,logfn)
-
-#            print f.file, "would set", eos_acls, "->", new_acls
-            #if len(new_acls)>1: print "MUTLIPLE"
-#
-#         else:
-#            print f.file, "no change",eos_acls
-
-    
 
 
 def summary(args,config,eos,db):

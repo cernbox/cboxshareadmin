@@ -210,19 +210,6 @@ def main():
 
       cernbox_utils.cmd_share_admin.verify(args,config,eos,db)
 
-
-def more_permissions_than(acl_list, reference_acl_list):
-   """Return all ACL entries from acl_list which give more permissions than specified by reference_acl_list.
-   """
-
-   acls=set(acl_list)
-   refs=set(reference_acl_list)
-
-   more = set()
-
-   for acl in acls:
-      if not acl in refs:
-         pass
    
 def parse_sharee(sharee):
     try:
