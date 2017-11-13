@@ -141,18 +141,8 @@ def main():
    import cernbox_utils.sharing
 
    if args.cmd == "acl_update":
-      db = db.ShareDB()
-      eos = eos.EOS(config['eos_mgm_url'])
-      eos.role=(0,0)
-
-      import cernbox_utils.sharing
-
-      if args.pathspec.startswith("inode:"):
-         inode = args.pathspec[len("inode:"):]
-      else:
-         inode = eos.fileinfo(args.pathspec).ino
-
-      cernbox_utils.sharing.update_acls(inode,eos,db,owner=None,dryrun=False)
+      import cernbox_utils.cmd_share_admin
+      cernbox_utils.cmd_share_admin.acl_update(args,config,eos,db)
 
    if args.cmd == "remove":
 
@@ -169,85 +159,14 @@ def main():
          sys.exit(2)
 
    if args.cmd == "show-other-acls":
-      #from cernbox_utils import eos
-      eos = eos.EOS(config['eos_mgm_url'])
-      eos.role=(0,0)
-
-      other_acl_cnt = 0
-      empty_acl_cnt = 0
-      special_dir_cnt = 0
-      cnt = 0
-
-      for f in eos.fileinfo_r(args.path,type="-d"):
-
-         cnt += 1
-      
-         if is_special_folder(f.file):
-            special_dir_cnt+=1
-            if args.ignore_special_directories:
-               continue
-
-         try:
-            eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
-         except KeyError,x:
-            empty_acl_cnt+=1 # no ACL at all
-
-         for acl in eos_acls:
-            if acl.name != args.name:
-               other_acl_cnt+=1
-               logger.info("%s %s",f.file,eos_acls)
-               break
-            
-      logger.info("Scan completed. Found %d directories, %d with acls not containing %s, %d with empty acls, %d special dirs",cnt,other_acl_cnt,args.name,empty_acl_cnt,special_dir_cnt)
+      import cernbox_utils.cmd_share_admin
+      cernbox_utils.cmd_share_admin.show_other_acl(args,config,eos,db)
 
    if args.cmd == "remove-orphan-xbits":
-      #from cernbox_utils import eos
-      eos = eos.EOS(config['eos_mgm_url'])
-      eos.role=(0,0)
+      import cernbox_utils.cmd_share_admin
 
-      logfn = ""
-
-      if args.logdir:
-         import logging
-         fix_str = ""
-         if args.fix: fix_str=".fix"
-         logfn = os.path.join(args.logdir,os.path.normpath(args.path).replace(os.sep,"_")+fix_str+".log")
-         fh = logging.FileHandler(logfn)
-         fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-         logger.addHandler(fh)
-
-      cnt = 0
-      fixed_cnt = 0
-
-      for f in eos.fileinfo_r(args.path,type="-d"):
-         cnt += 1
-         try:
-            eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
-         except KeyError,x:
-            continue # no ACL at all
-
-         new_acls = []
-         for acl in eos_acls:
-            if not acl.bits == "x":
-               new_acls.append(acl)
-
-         #logger.info(" --- SCAN      --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
-
-         if new_acls != eos_acls:
-            logger.info(" --- NEW_ACL   --- %s --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(new_acls),eos.dump_sysacl(eos_acls))
-            eos.set_sysacl(f.file,eos.dump_sysacl(new_acls),dryrun=not args.fix)
-            fixed_cnt += 1
-         else:
-            #logger.info(" --- NO_CHANGE --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
-            pass
-
-      logger.info("Scanned %d directories, fixed %d directories, logfile: %s",cnt,fixed_cnt,logfn)
-
-#            print f.file, "would set", eos_acls, "->", new_acls
-            #if len(new_acls)>1: print "MUTLIPLE"
-#
-#         else:
-#            print f.file, "no change",eos_acls
+      cernbox_utils.cmd_share_admin.remove_orphan_xbits(args,config,eos,db)
+      
 
    if args.cmd in ["list-shared-by","list-shared-with"]:
 
@@ -282,68 +201,14 @@ def main():
          sys.exit(2)
 
    if args.cmd == "summary":
+      import cernbox_utils.cmd_share_admin
 
-      from cernbox_utils import db,eos
-
-      if not args.shares_owner.strip():
-         logger.critical("Must provide a shares_owner or '-'")
-         return
-
-      if args.shares_owner == '-':
-         args.shares_owner = ''
-
-
-      db = db.ShareDB()
-
-      shares=db.get_share(owner=args.shares_owner)
-
-      owner_all_share_cnt = {}
-      owner_link_share_cnt = {}
-      owner_regular_share_cnt = {}
-
-      for s in shares:
-         try:
-            if s.file_target is None:
-               s.file_target = ''
-
-            logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
-
-            owner_all_share_cnt.setdefault(s.uid_owner,0)
-            owner_link_share_cnt.setdefault(s.uid_owner,0)
-            owner_regular_share_cnt.setdefault(s.uid_owner,0)
-
-            owner_all_share_cnt[s.uid_owner] += 1
-
-            if s.share_type == 3:
-               owner_link_share_cnt[s.uid_owner] += 1
-            else:
-               owner_regular_share_cnt[s.uid_owner] += 1
-
-         except Exception,x:
-            logger.error("Problem with processing share id=%d : %s",s.id,repr(x))
-            raise
-
-      sort_by = owner_all_share_cnt
-
-
-      if args.sort_by == 'regular':
-         sort_by = owner_regular_share_cnt
-
-      if args.sort_by == 'link':
-         sort_by = owner_link_share_cnt
-
-      index = len(owner_all_share_cnt)
-
-      for u,cnt in sorted(sort_by.iteritems(), key=lambda (k,v): (v,k)):
-         logger.info("Index #%4d Owner %10s has total of %4d shares: %4d regular shares, %4d link shares",index,u,owner_all_share_cnt[u],owner_regular_share_cnt[u],owner_link_share_cnt[u])
-         index -= 1
-
+      cernbox_utils.cmd_share_admin.summary(args,config,eos,db)
 
    if args.cmd == "verify":
       import cernbox_utils.cmd_share_admin
 
       cernbox_utils.cmd_share_admin.verify(args,config,eos,db)
-
 
 
 def more_permissions_than(acl_list, reference_acl_list):
