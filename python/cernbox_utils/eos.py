@@ -3,6 +3,16 @@ from cernbox_utils.script import runcmd
 
 logger = cernbox_utils.script.getLogger('eos')
 
+def is_special_folder(path):
+   import os.path
+   "Special system directories are hidden and used to implement certain features such as atomic upload, versioning: .sys.v# .sys.a#"
+   name = os.path.basename(os.path.normpath(path))
+   for prefix in ['.sys.v#','.sys.a#']:
+      if name.startswith(prefix):
+         return True
+   return False
+
+
 def quote(s):
     # escape single quotes contained inside a single-quoted string for bash arguments
     s = s.replace("'","""'"'"'""") # this will replace any single quote character by this sequence '"'"'
