@@ -770,6 +770,14 @@ def parse_swan_project(swanprj):
       print >> sys.stderr, "ERROR: SWAN project name wrongly specified '%s'"% (swanprj)
       sys.exit(2)
 
+
+def check_share_not_self(owner,sharee):
+   entity,who = parse_sharee(sharee)
+
+   if entity == 'u' and who == owner:
+      print >> sys.stderr, "ERROR: cannot share with self '%s'"% owner
+      sys.exit(2)      
+
 class CmdError(Exception):
    pass
 
@@ -800,6 +808,9 @@ def cmd_swan_delete_share(args):
    return _cmd_swan_update_share(args.project, args.owner, [])
 
 def _cmd_swan_update_share(swan_project, owner, sharees):
+
+   for sharee in sharees:
+      check_share_not_self(owner,sharee)
 
    f = get_swan_project_fileinfo(owner, swan_project)
 
@@ -876,6 +887,8 @@ def cmd_add(args):
    return _cmd_add(args.owner,args.path,args.sharee,args.acl)
 
 def _cmd_add(owner,path,sharee,acl,storage_acl_update=True):
+
+      check_share_not_self(owner,sharee)
 
       share_with_entity,share_with_who = parse_sharee(sharee)
 
