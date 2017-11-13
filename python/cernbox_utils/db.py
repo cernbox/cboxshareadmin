@@ -93,11 +93,15 @@ class ShareDB:
 
    # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
 
-   def insert_folder_share(self,owner,sharee,fid,file_target,permissions,stime=None):
+   def insert_folder_share(self,owner,sharee,fid,file_target,permissions,stime=None,initiator=None):
       cur = self.db.cursor()
       logger = cernbox_utils.script.getLogger('db')
 
+      if initiator is None:
+         initiator=owner
+
       assert(all(c.isalnum() for c in owner))
+      assert(all(c.isalnum() for c in initiator))
       assert(all(c.isalnum() or c=='-' for c in sharee)) # egroups may have dash in the name
 
       if '-' in sharee:
@@ -123,7 +127,7 @@ class ShareDB:
          stime = time.time()
 
 
-      sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),item_source,item_target,file_source,file_target,permissions,stime);
+      sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime);
 
       logger.debug(sql)
       cur.execute(sql)
