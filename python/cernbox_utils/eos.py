@@ -1,7 +1,7 @@
 import cernbox_utils.script
 from cernbox_utils.script import runcmd
 
-logger = cernbox_utils.script.getLogger('eos')
+logger = None 
 
 def is_special_folder(path):
    import os.path
@@ -22,6 +22,9 @@ class EOS:
     def __init__(self,mgmurl=''):
         self.mgmurl=mgmurl
         self.role = None
+        global logger
+        if not logger:
+           logger = cernbox_utils.script.getLogger('eos')
 
     def _eoscmd(self,role,*args):
         if not role: role = self.role
