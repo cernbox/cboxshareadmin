@@ -1,5 +1,6 @@
 import cernbox_utils
 import subprocess
+import os
 
 # remove duplicates, preserving order
 def squash(seq):
@@ -62,6 +63,54 @@ def acl2crud(bits):
 def is_egroup(name):
    return '-' in name
 
+def split_sharee(sharee):
+    entity,who = sharee.split(":")  # this may also raise ValueError
+    if not entity in ['u','egroup']:
+        raise ValueError()
+    return entity,who
+
+
+def check_can_share(owner,sharee):
+    
+    entity,who = split_sharee(sharee)
+
+    if entity == 'u' and who == owner:
+        raise ValueError("ERROR: cannot share with self '%s'"%owner)
+
+# TODO: rename to get_
+def check_share_target(path,owner,eos,config):
+      import os
+
+      if not path.startswith(config['eos_prefix']):
+         raise ValueError("ERROR: path '%s' should start with '%s'"% (path,config['eos_prefix']))
+
+      try:
+         f = eos.fileinfo(path)
+      except subprocess.CalledProcessError,x:
+         if 'error: cannot stat' in x.stderr:
+            raise ValueError("Not found: %s"%path)
+            
+         else:
+            logger.error(repr(x.stderr))
+            raise
+
+      # make sure it is a folder, not a file
+   
+      if not f.is_dir():
+         raise ValueError("Authenticated shares not supported for individual files... %s"%f.file)
+
+      # get the top level
+
+      if os.path.normpath(f.file).startswith(os.path.join(config['eos_prefix'],owner[0],owner)):
+         top_level = os.path.join(config['eos_prefix'],owner[0],owner)
+      elif os.path.normpath(f.file).startswith(config['eos_project_prefix']):
+         # check eligibility based on admin/writers egroup?
+         print_json_error("NotImplemented")
+         raise NotImplemented()
+      else:
+         raise ValueError("Cannot share outside of home and project directories %s"%path)
+
+      return f
 
 def update_acls(fid,eos,db,owner=None,dryrun=True):
     """ Simple update strategy: override the whole tree in top-down order.
@@ -243,3 +292,121 @@ def collapse_into_nodes(shares):
         nodes[s.item_source].shares.add(s)
 
     return nodes
+
+def list_shares(user,role,fid,flat_list,include_broken,db,eos):
+    """ Return JSON-style dictionary listing all shares for a user in a role of "owner" or "sharee". 
+    Each shared directory has one entry (and multuple shared_with entries if applicable).
+
+    The fid may be left None. If fid is provided, the list will be limited to shares on the directory.
+
+    Output modifiers: 
+        - flat_list = as in the underlying db.
+        - include_broken = shares which do not have anymore a corresponding filesystem object
+    """
+
+    logger = cernbox_utils.script.getLogger('sharing')
+
+    user=user.strip()
+    assert(user)
+ 
+    assert(role in ['owner','sharee'])
+ 
+    logger = cernbox_utils.script.getLogger('sharing')
+ 
+    if role == "owner":
+       shares=db.get_share(owner=user,fid=fid)
+    else:
+       shares=db.get_share(sharee=user,fid=fid)   
+ 
+    import datetime
+    def dtisoformat(x):
+       if x:
+          return x.isoformat()
+       else:
+          return ""
+ 
+    if flat_list:
+       cnt=0
+       retobj = {}
+       for s in shares:
+          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(str(s.file_target)))
+ 
+          try:
+             share_path = eos.fileinfo("inode:"+s.item_source).file
+          except  subprocess.CalledProcessError,x:
+             if x.returncode == 2:
+                # eos entry does not exist
+                logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
+                share_path=None
+ 
+ 
+          if share_path or include_broken:
+             retobj[s.id] = {'uid_owner':s.uid_owner,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
+ 
+ 
+       return retobj
+    else:
+       retobj = []
+       nodes = collapse_into_nodes(shares)
+       for target_id in nodes:
+          try:
+             f = eos.fileinfo("inode:"+target_id)
+             target_path,target_size=f.file,f.treesize
+          except  subprocess.CalledProcessError,x:
+             if x.returncode == 2:
+                # eos entry does not exist
+                logger.warning("DANGLING_SHARE inode=%s",target_id)
+                target_path,target_size=None,0
+ 
+ 
+          if target_path or args.include_broken:
+             retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
+             for s in nodes[target_id].shares:
+                acl = share2acl(s)
+                retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
+ 
+       return retobj
+
+def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
+
+      logger = cernbox_utils.script.getLogger('sharing')
+
+      check_can_share(owner,sharee)
+
+      share_with_entity,share_with_who = split_sharee(sharee)
+
+      f = check_share_target(path,owner,eos,config)
+
+      # ... continue from common code above
+
+      ACL = {'r':'read','rw':'read-write'}
+      ENTITY = {'u':'user','egroup':'egroup'}
+
+      logger.info("Add %s share for %s %s to tree %s",ACL[acl],ENTITY[share_with_entity],share_with_who,path)
+ 
+      # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
+      file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.ino))
+
+      # FIXME: poor's man solution: owncloud does not have constraints in the oc_share table
+      # try to insert share entry, bailout if already exists...
+
+      shares=db.get_share(sharee=share_with_who,owner=owner,fid=f.ino)
+
+      if shares:
+         msg="Share already exists, share id %d"%shares[0].id
+         logger.error(msg)
+         print_json_error(msg)
+         sys.exit(2)
+      else:
+         db.insert_folder_share(owner,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
+
+      try:
+         # modify storage ACL
+         if storage_acl_update:
+            cernbox_utils.sharing.update_acls(f.ino,eos,db,owner,dryrun=False)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
+         print_json_error("Critical error %s"%hash(x))
+         #rollback the insert?
+         raise
+         sys.exit(2)
