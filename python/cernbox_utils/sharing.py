@@ -79,6 +79,12 @@ def check_can_share(owner,sharee):
 
 # TODO: rename to get_
 def check_share_target(path,owner,eos,config):
+      """ Return EOS file object for path.
+      If path does not exist return None.
+      If path is not sharable raise ValueError() 
+      """
+      logger = cernbox_utils.script.getLogger('sharing')
+
       import os
 
       if not path.startswith(config['eos_prefix']):
@@ -88,8 +94,7 @@ def check_share_target(path,owner,eos,config):
          f = eos.fileinfo(path)
       except subprocess.CalledProcessError,x:
          if 'error: cannot stat' in x.stderr:
-            raise ValueError("Not found: %s"%path)
-            
+            return None
          else:
             logger.error(repr(x.stderr))
             raise
@@ -293,7 +298,7 @@ def collapse_into_nodes(shares):
 
     return nodes
 
-def list_shares(user,role,fid,flat_list,include_broken,db,eos):
+def list_shares(user,role,groups,fid,flat_list,include_broken,db,eos):
     """ Return JSON-style dictionary listing all shares for a user in a role of "owner" or "sharee". 
     Each shared directory has one entry (and multuple shared_with entries if applicable).
 
@@ -316,7 +321,10 @@ def list_shares(user,role,fid,flat_list,include_broken,db,eos):
     if role == "owner":
        shares=db.get_share(owner=user,fid=fid)
     else:
-       shares=db.get_share(sharee=user,fid=fid)   
+       shares=db.get_share(sharee=user,fid=fid)  
+
+       for g in groups:
+           shares.extend(db.get_share(sharee=groups,fid=fid))
  
     import datetime
     def dtisoformat(x):
@@ -377,6 +385,9 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
 
       f = check_share_target(path,owner,eos,config)
 
+      if not f:
+          raise ValueError("Not found: %s"%path)
+
       # ... continue from common code above
 
       ACL = {'r':'read','rw':'read-write'}
@@ -395,8 +406,7 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
       if shares:
          msg="Share already exists, share id %d"%shares[0].id
          logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
+         raise ValueError(msg) # TODO: BAD REQUEST
       else:
          db.insert_folder_share(owner,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
 
@@ -404,9 +414,12 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
          # modify storage ACL
          if storage_acl_update:
             cernbox_utils.sharing.update_acls(f.ino,eos,db,owner,dryrun=False)
-      except Exception,x:
-         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
-         print_json_error("Critical error %s"%hash(x))
+      except CalledProcessError,x:
+         logger.critical("Something went pretty wrong... %s %s stdout %s stderr %s",hash(x),x,x.stdout,x.stderr)
          #rollback the insert?
          raise
-         sys.exit(2)
+      except Exception,x:
+         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
+         #rollback the insert?
+         raise
+
