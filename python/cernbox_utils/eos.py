@@ -1,5 +1,4 @@
 import cernbox_utils.script
-from cernbox_utils.script import runcmd
 
 logger = None 
 
@@ -26,30 +25,50 @@ class EOS:
         if not logger:
            logger = cernbox_utils.script.getLogger('eos')
 
-    def _eoscmd(self,role,*args):
-        if not role: role = self.role
+        self.env = {'EOS_MGM_URL':mgmurl, 'XRD_NETWORKSTACK':'IPv4'} 
+        # EOS_MGM_URL is needed for some convoluted cases such as 'eos cp -r' 
+        # which actually spawns a subprocess without correctly passing the mgmurl as a command-line option
+
+        import logging
+        if logger.getEffectiveLevel()<=logging.DEBUG:
+           self.env['XRD_LOGLEVEL'] = 'Debug'
+
+
+    def _eoscmd(self,*args,**kwds):
+
+        try:
+           role = kwds['role']
+           if not role: role = self.role
+        except KeyError:
+           role=self.role
+
         if role:
             uid,gid=role
-            eos = "eos -r %d %d " % (uid,gid) # running eos command with the role of the user
+            eos = ["eos","-r", str(uid),str(gid)] # running eos command with the role of the user
         else:
-            eos = "eos "
+            eos = ["eos"]
 
-        return eos + self.mgmurl + " " + " ".join(args)
+        #TODO: find /usr/bin/eos by PATH?
 
+        cmd = eos + [self.mgmurl] + list(args)
+        return cmd
+
+    def _runcmd(self,cmd,**opts):
+       return cernbox_utils.script.runcmd(cmd,env=self.env,shell=False,**opts)
 
     def ls(self,path,opts,role=None):
 
-        eos = self._eoscmd(role,'ls',opts,quote(path))
+        eos = self._eoscmd('ls',opts,path,role=role)
 
-        return runcmd(eos,echo=False)[1].splitlines()
+        return self._runcmd(eos,echo=False)[1].splitlines()
 
     def fileinfo(self,spec,role=None):
         """ spec may be <path> or fid:<fid-dec> ...
         """
 
-        eos = self._eoscmd(role,'file info',quote(spec),'-m')
+        eos = self._eoscmd('file info',spec,'-m',role=role)
                 
-        return _parse_mline(runcmd(eos,echo=False)[1])
+        return _parse_mline(self._runcmd(eos,echo=False)[1])
     
     def fileinfo_r(self,path,type="",maxdepth=None,role=None):
 
@@ -57,10 +76,10 @@ class EOS:
         if maxdepth:
             opts += "--maxdepth "+str(maxdepth)
 
-        eos = self._eoscmd(role,"find %s --fileinfo"%type,opts,quote(path))
+        eos = self._eoscmd("find",type,"--fileinfo",opts,path,role=role)
 
         r = []
-        for mline in runcmd(eos,echo=False)[1].splitlines():
+        for mline in self._runcmd(eos,echo=False)[1].splitlines():
             #logger.debug("fileinfo: %s",mline)
             mline=mline.strip()
             if mline: # skip empty lines
@@ -74,11 +93,11 @@ class EOS:
         return self.__set_sysacl(path,acl,role,dryrun,'')
 
     def __set_sysacl(self,path,acl,role,dryrun,opt):
-        eos = self._eoscmd(role,"attr %s set sys.acl=%s %s"%(opt,quote(acl),quote(path)))
+        eos = self._eoscmd("attr",opt,"set","sys.acl=%s"%acl,path,role=role)
         if dryrun:
             logger.warning("would run: %s",eos)
         else:
-            runcmd(eos,echo=False)
+            self._runcmd(eos,echo=False)
         #logger.warning("eos -r 0 0 attr set sys.acl=%s %s",quote(eos.dump_sysacl(db_acls)),quote(f.file))
 
     class FileInfo(cernbox_utils.script.Data):
