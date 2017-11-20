@@ -219,52 +219,8 @@ def cmd_remove(args):
 
 
 def cmd_add(args):
-
-   return _cmd_add(args.owner,args.path,args.sharee,args.acl)
-
-def _cmd_add(owner,path,sharee,acl,storage_acl_update=True):
-
-      check_share_not_self(owner,sharee)
-
-      share_with_entity,share_with_who = parse_sharee(sharee)
-
-      path = parse_path(path)
-      
-      f = check_share_target(path, owner)
-
-      # ... continue from common code above
-
-      ACL = {'r':'read','rw':'read-write'}
-      ENTITY = {'u':'user','egroup':'egroup'}
-
-      logger.info("Add %s share for %s %s to tree %s",ACL[acl],ENTITY[share_with_entity],share_with_who,path)
- 
-      # FIXME: do not use pound for this anymore (#): breaks HTTP standard and client browsers...
-      file_target="/%s (#%d)" %(os.path.basename(os.path.normpath(f.file)),int(f.ino))
-
-      # FIXME: poor's man solution: owncloud does not have constraints in the oc_share table
-      # try to insert share entry, bailout if already exists...
-
-      shares=db.get_share(sharee=share_with_who,owner=owner,fid=f.ino)
-
-      if shares:
-         msg="Share already exists, share id %d"%shares[0].id
-         logger.error(msg)
-         print_json_error(msg)
-         sys.exit(2)
-      else:
-         db.insert_folder_share(owner,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
-
-      try:
-         # modify storage ACL
-         if storage_acl_update:
-            cernbox_utils.sharing.update_acls(f.ino,eos,db,owner,dryrun=False)
-      except Exception,x:
-         logger.critical("Something went pretty wrong... %s %s",hash(x),x)
-         print_json_error("Critical error %s"%hash(x))
-         #rollback the insert?
-         raise
-         sys.exit(2)
+   import cernbox_utils.sharing
+   return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl)
 
 def cmd_list_shares(args,role):
 
@@ -272,70 +228,6 @@ def cmd_list_shares(args,role):
    retobj = cernbox_utils.sharing.list_shares(args.user,role,None,False,False,db,eos)
    return {'shares':retobj}
 
-def _cmd_list_shares(args,fid=None):
-   from cernbox_utils import db,eos,sharing
-
-   if not args.user.strip():
-      logger.critical("Must provide a user name!")
-      raise CmdError()
-
-   db = db.ShareDB()
-   eos = eos.EOS(config['eos_mgm_url'])
-   eos.role=(0,0)
-
-   if args.cmd == "list-shared-by":
-      shares=db.get_share(owner=args.user,fid=fid)
-   else:
-      shares=db.get_share(sharee=args.user,fid=fid)   
-
-   import datetime
-   def dtisoformat(x):
-      if x:
-         return x.isoformat()
-      else:
-         return ""
-
-   if args.flat_list:
-      cnt=0
-      retobj = {}
-      for s in shares:
-         logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(str(s.file_target)))
-
-         try:
-            share_path = eos.fileinfo("inode:"+s.item_source).file
-         except  subprocess.CalledProcessError,x:
-            if x.returncode == 2:
-               # eos entry does not exist
-               logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
-               share_path=None
-
-
-         if share_path or args.include_broken:
-            retobj[s.id] = {'uid_owner':s.uid_owner,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
-
-
-      return retobj
-   else:
-      retobj = []
-      nodes = sharing.collapse_into_nodes(shares)
-      for target_id in nodes:
-         try:
-            f = eos.fileinfo("inode:"+target_id)
-            target_path,target_size=f.file,f.treesize
-         except  subprocess.CalledProcessError,x:
-            if x.returncode == 2:
-               # eos entry does not exist
-               logger.warning("DANGLING_SHARE inode=%s",target_id)
-               target_path,target_size=None,0
-
-
-         if target_path or args.include_broken:
-            retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
-            for s in nodes[target_id].shares:
-               acl = sharing.share2acl(s)
-               retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':sharing.db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
-
-      return retobj
 
 if __name__ == "__main__":
    sys.exit(main())
