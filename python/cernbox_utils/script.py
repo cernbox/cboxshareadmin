@@ -22,6 +22,7 @@ def arg_parser(**kwds):
     group.add_argument('--json', dest='json', action="store_true", default=False, help='Use JSON as data exchange format (this is an "API" call by another program). Print result on stdout in a JSON format.')
 
     parser.set_defaults(loglevel=logging.INFO)
+    #parser.set_defaults(loglevel=logging.DEBUG)
 
     return parser
 
@@ -63,6 +64,8 @@ def getLogger(name="",level=None):
       #h.setLevel(level)
       logging.basicConfig(level=level)
 
+      #logging.basicConfig(level=level,filename="/var/log/cernbox.log",filemode="w")
+
    names = ['cernbox']
    if name:
        names.append(name)
@@ -78,10 +81,10 @@ def getLogger(name="",level=None):
 
 import subprocess
 
-def runcmd(cmd,ignore_exitcode=False,echo=True,allow_stderr=True,shell=True,log_warning=True):
+def runcmd(cmd,ignore_exitcode=False,echo=True,allow_stderr=True,shell=False,log_warning=True,env=None):
     logger.debug('running %s', repr(cmd))
 
-    process = subprocess.Popen(cmd, shell=shell,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    process = subprocess.Popen(cmd, shell=shell,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env)
     stdout,stderr = process.communicate()
 
     if echo:
