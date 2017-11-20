@@ -32,6 +32,8 @@ db = None # DB interface instance
 
 import cernbox_utils
 
+from cernbox_utils.errors import CmdBadRequestError
+
 import os, os.path, sys
 import subprocess
 
@@ -53,11 +55,17 @@ def main():
    subcmd = subparser.add_parser('update-share', help="update share for a SWAN project which will be shared to the specified sharees (and only to them)")
    subcmd.add_argument("owner", help="share owner")
    subcmd.add_argument("project", help="project path")
-   subcmd.add_argument("sharees", help="specify sharees",nargs='+')
+   subcmd.add_argument("sharees", help="fully qualified names of sharees",nargs='+')
 
    subcmd = subparser.add_parser('delete-share', help="delete all shares for a SWAN project")
    subcmd.add_argument("owner", help="share owner")
    subcmd.add_argument("project", help="project path")
+
+   subcmd = subparser.add_parser('clone-share', help="clone <shared_project> shared by <sharer> (with <receiver>) as project <cloned_project> to be owned by <receiver>")
+   subcmd.add_argument("sharer", help="name of the sharer")
+   subcmd.add_argument("shared_project", help="project to clone")
+   subcmd.add_argument("receiver", help="name of the user to receive the cloned project")
+   subcmd.add_argument("cloned_project", help="name of the project at new destination")
 
    args = parser.parse_args()
 
@@ -78,21 +86,23 @@ def main():
    def print_json(obj):
        if args.json:
            import json
-           print json.dumps(obj,ensure_ascii=False) # allows unicode characters from eos output
+           if obj is not None:
+               print json.dumps(obj,ensure_ascii=False) # allows unicode characters from eos output
 
    def print_json_error(msg):
        print_json({"error" : str(msg)})
-
 
    f = globals()['cmd_'+args.cmd.replace('-','_')]
 
    try:
        r = f(args)
        print_json(r)
-#   except CmdBadRequestError,x:
-#       print_json_error(x.msg)
-#       sys.exit(3)
+   except CmdBadRequestError,x:
+       print_json_error(x.msg)
+       sys.exit(40)
    except Exception,x:
+       import traceback
+       logger.critical("%s. Unhandled exception: %s"%(x,traceback.format_exc()))
        raise
        sys.exit(2)
 
@@ -108,9 +118,16 @@ def _cmd_swan_update_share(swan_project, owner, sharees):
    import cernbox_utils.sharing
 
    for sharee in sharees:
-      cernbox_utils.sharing.check_can_share(owner,sharee)
+       try:
+           cernbox_utils.sharing.check_can_share(owner,sharee)
+       except ValueError,x:
+           raise CmdBadRequestError("wrong sharee specification: %s"%sharee)
 
    f = get_swan_project_fileinfo(owner, swan_project)
+
+   if not f:
+       raise CmdBadRequestError("project not found %s %s"%(owner,swan_project))
+       # BAD REQUEST
 
    shares=db.get_share(owner=owner,fid=f.ino)
 
@@ -161,7 +178,11 @@ def cmd_list_shared_by(args):
 def _cmd_list_shared(args,role,inode):
    import cernbox_utils.sharing
 
-   retbuf = cernbox_utils.sharing.list_shares(args.user,role,inode,False,False,db,eos)
+   groups = []
+   # TODO: resolve groups via cboxgroupd
+   # curl -i localhost:2002/api/v1/membership/usergroups/moscicki -H "Authorization: Bearer abc"
+
+   retbuf = cernbox_utils.sharing.list_shares(args.user,role,groups,inode,False,False,db,eos)
 
    retobj = []
    
@@ -176,30 +197,66 @@ def _cmd_list_shared(args,role,inode):
    return {'shares':retobj}
 
 
+def cmd_clone_share(args):
+    
+    import cernbox_utils.sharing as sharing
+
+    fsrc = get_swan_project_fileinfo(args.sharer,args.shared_project)
+
+    if not fsrc:
+        raise CmdBadRequestError("Source not found")
+
+    s = db.get_share(fid=fsrc.ino,sharee=args.receiver,owner=args.sharer,share_type="regular")
+
+    if not s:
+        raise CmdBadRequestError("Share not found")
+
+    # so far so good, share exists and target also exists...
+
+    fdest = get_swan_project_fileinfo(args.receiver,args.cloned_project)
+
+    # destination exists
+    if fdest:
+        raise CmdBadRequestError("Destination project exists")
+
+    # we copy using the role of the receiver
+    logger.debug("getting gid")
+    import pwd
+    p = pwd.getpwnam(args.receiver) # will end up with KeyError if user not resolved
+    role = (p.pw_uid,p.pw_gid)
+    logger.debug("got gid %s"%str(role))
+
+    # eos cp -r will preserve the directory name at the destination
+    # copy to a temporary area and then rename into new destination
+
+    import uuid
+
+    tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
+
+    r = eos._runcmd(eos._eoscmd("mkdir","-p",tmppath))
+    r = eos._runcmd(eos._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',tmppath+'/'))
+    r = eos._runcmd(eos._eoscmd('file','rename', os.path.join(tmppath,os.path.basename(fsrc.file)),swanprj2path(args.receiver,args.cloned_project)))
+    r = eos._runcmd(eos._eoscmd('rmdir',tmppath))
+
 # helpers
 
 def get_swan_project_fileinfo(owner,swan_project):
+      """ Return EOS file object for a SWAN project or None if not found.
+
+      Raise ValueError() if project specified in a wrong way or not sharable.
+      """
 
       p = swanprj2path(owner,swan_project)
 
       if not p:
-         print_json_error("Project name misformatted: %s"%(swan_project))
-         sys.exit(2) # TODO: FIX RC => 400 Bad Request
+         raise CmdBadRequestError("Project name misformatted: %s"%swan_project)
+         # TODO: FIX RC => 400 Bad Request
 
-      try:
-         return cernbox_utils.sharing.check_share_target(p,owner,eos,config)
-      except  subprocess.CalledProcessError,x:
-         if x.returncode == 2:
-            print_json_error("Project not found: %s owner %s"%(swan_project,owner))
-            sys.exit(2) 
-         else:
-            raise
-
+      return cernbox_utils.sharing.check_share_target(p,owner,eos,config)
 
 def parse_swan_project(swanprj):
    if not is_swanprj(swanprj):
-      print >> sys.stderr, "ERROR: SWAN project name wrongly specified '%s'"% (swanprj)
-      sys.exit(2)
+      raise CmdBadRequestError("ERROR: SWAN project name wrongly specified '%s'"%swanprj)
 
 # convert SWAN project name to EOS path and vice-versa
 
