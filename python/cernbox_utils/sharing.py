@@ -75,7 +75,7 @@ def check_can_share(owner,sharee):
     entity,who = split_sharee(sharee)
 
     if entity == 'u' and who == owner:
-        raise ValueError("ERROR: cannot share with self '%s'"%owner)
+        raise ValueError("cannot share with self '%s'"%owner)
 
 # TODO: rename to get_
 def check_share_target(path,owner,eos,config):
@@ -88,7 +88,7 @@ def check_share_target(path,owner,eos,config):
       import os
 
       if not path.startswith(config['eos_prefix']):
-         raise ValueError("ERROR: path '%s' should start with '%s'"% (path,config['eos_prefix']))
+         raise ValueError("path '%s' should start with '%s'"% (path,config['eos_prefix']))
 
       try:
          f = eos.fileinfo(path)
