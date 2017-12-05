@@ -82,15 +82,14 @@ def main():
    eos = cernbox_utils.eos.EOS(config['eos_mgm_url'])
    eos.role=(0,0)
 
-
    def print_json(obj):
        if args.json:
            import json
            if obj is not None:
                print json.dumps(obj,ensure_ascii=False) # allows unicode characters from eos output
 
-   def print_json_error(msg):
-       print_json({"error" : str(msg)})
+   def print_json_error(msg,statuscode):
+       print_json({"error" : str(msg), "statuscode" : int(statuscode)})
 
    f = globals()['cmd_'+args.cmd.replace('-','_')]
 
@@ -98,13 +97,15 @@ def main():
        r = f(args)
        print_json(r)
    except CmdBadRequestError,x:
-       print_json_error(x.msg)
-       sys.exit(40)
+       logger.error("CmdBadRequestError: %s",x.msg)
+       print_json_error(x.msg,400)
+       sys.exit(4)
    except Exception,x:
        import traceback
        logger.critical("%s. Unhandled exception: %s"%(x,traceback.format_exc()))
+       print_json_error("Unhandled exception.",400)
        raise
-       sys.exit(2)
+
 
 def cmd_update_share(args):
    parse_swan_project(args.project)
@@ -121,12 +122,13 @@ def _cmd_swan_update_share(swan_project, owner, sharees):
        try:
            cernbox_utils.sharing.check_can_share(owner,sharee)
        except ValueError,x:
-           raise CmdBadRequestError("wrong sharee specification: %s"%sharee)
+           logger.error(x)
+           raise CmdBadRequestError(str(x))
 
    f = get_swan_project_fileinfo(owner, swan_project)
 
    if not f:
-       raise CmdBadRequestError("project not found %s %s"%(owner,swan_project))
+       raise CmdBadRequestError("Project not found %s %s"%(owner,swan_project))
        # BAD REQUEST
 
    shares=db.get_share(owner=owner,fid=f.ino)
@@ -169,6 +171,8 @@ def cmd_list_shared_by(args):
     if args.project:
         parse_swan_project(args.project)
         f = get_swan_project_fileinfo(args.user,args.project)
+        if not f:
+            raise CmdBadRequestError("Source project not found")
         inode=f.ino
     else:
         inode = None
@@ -204,12 +208,12 @@ def cmd_clone_share(args):
     fsrc = get_swan_project_fileinfo(args.sharer,args.shared_project)
 
     if not fsrc:
-        raise CmdBadRequestError("Source not found")
+        raise CmdBadRequestError("Source project not found")
 
     s = db.get_share(fid=fsrc.ino,sharee=args.receiver,owner=args.sharer,share_type="regular")
 
     if not s:
-        raise CmdBadRequestError("Share not found")
+        raise CmdBadRequestError("Project not shared")
 
     # so far so good, share exists and target also exists...
 
@@ -252,7 +256,8 @@ def get_swan_project_fileinfo(owner,swan_project):
          raise CmdBadRequestError("Project name misformatted: %s"%swan_project)
          # TODO: FIX RC => 400 Bad Request
 
-      return cernbox_utils.sharing.check_share_target(p,owner,eos,config)
+      import cernbox_utils.sharing as sharing
+      return sharing.check_share_target(p,owner,eos,config)
 
 def parse_swan_project(swanprj):
    if not is_swanprj(swanprj):
