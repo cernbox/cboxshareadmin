@@ -337,7 +337,7 @@ def list_shares(user,role,groups,fid,flat_list,include_broken,db,eos):
        cnt=0
        retobj = {}
        for s in shares:
-          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(str(s.file_target)))
+          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,str(s.file_target))
  
           try:
              share_path = eos.fileinfo("inode:"+s.item_source).file
@@ -349,7 +349,7 @@ def list_shares(user,role,groups,fid,flat_list,include_broken,db,eos):
  
  
           if share_path or include_broken:
-             retobj[s.id] = {'uid_owner':s.uid_owner,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
+             retobj[s.id] = {'uid_owner':s.uid_owner,'uid_initiator':s.uid_initiator,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
  
  
        return retobj
