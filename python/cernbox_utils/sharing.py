@@ -298,7 +298,7 @@ def collapse_into_nodes(shares):
 
     return nodes
 
-def list_shares(user,role,groups,fid,flat_list,include_broken,db,eos):
+def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos):
     """ Return JSON-style dictionary listing all shares for a user in a role of "owner" or "sharee". 
     Each shared directory has one entry (and multuple shared_with entries if applicable).
 
@@ -319,9 +319,9 @@ def list_shares(user,role,groups,fid,flat_list,include_broken,db,eos):
     logger = cernbox_utils.script.getLogger('sharing')
  
     if role == "owner":
-       shares=db.get_share(owner=user,fid=fid)
+       shares=db.get_share(owner=user,fid=fid,share_type=share_type)
     else:
-       shares=db.get_share(sharee=user,fid=fid)  
+       shares=db.get_share(sharee=user,fid=fid,share_type=share_type)  
 
        for g in groups:
            shares.extend(db.get_share(sharee=groups,fid=fid))
