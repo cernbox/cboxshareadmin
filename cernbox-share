@@ -55,15 +55,12 @@ def main():
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
    subcmd = subparser.add_parser('add', help="add a share to the system")
-   #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
    subcmd.add_argument("path", help="path on storage")
    subcmd.add_argument("owner", help="share owner")
-   subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
+   subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP") #TODO: OC_INTEGRATION add UNIX groups => g:<group>
    subcmd.add_argument("acl", help="access rights: r (read), rw (read-write)")
 
-   subcmd = subparser.add_parser('remove', help="remove share from the system")
-   #subcmd.add_argument("--force",default=False,action='store_true', help="do not perform consistency checks")
-   #subcmd.add_argument("--nodb", default=False, action='store_true', help="do not modify the database and act on the storage ACLs only (check if the db entry does not exist)")
+   subcmd = subparser.add_parser('remove', help="remove share from the system") #TODO: OC_INTEGRATION remove by share id
    subcmd.add_argument("path", help="path on storage")
    subcmd.add_argument("owner", help="share owner")
    subcmd.add_argument("sharee", help="share with u:USER or egroup:GROUP")
@@ -73,10 +70,16 @@ def main():
    subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares in he output")
    subcmd.add_argument("--flat-list", default=False, action='store_true', help="flat listing with raw DB values")   
 
+   # TODO: OC_INTEGRATION add option to specify path
+   # TODO: OC_INTEGRATION --ocs instead of --flat-list
    subcmd = subparser.add_parser('list-shared-with', help="list all shares given to the user")
    subcmd.add_argument("user", help="specify sharee")
    subcmd.add_argument('--include-broken', default=False, action='store_true', help="include deleted or broken shares in he output")
    subcmd.add_argument("--flat-list", default=False, action='store_true', help="flat listing with raw DB values")   
+
+   # TODO: OC_INTEGRATION add update command to update permissions by share id
+
+   # ADMIN COMMANDS
 
    subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
    subcmd.add_argument("pathspec", help="path or inode:n")
@@ -184,9 +187,11 @@ class CmdError(Exception):
 
 def cmd_remove(args):
 
-      share_with_entity,share_with_who = parse_sharee(args.sharee)
+      from cernbox_utils.sharing import split_sharee
 
-      path = parse_path(args.path)
+      share_with_entity,share_with_who = split_sharee(args.sharee)
+
+      path = args.path #split_path(args.path)
 
       f = check_share_target(path, args.owner)
 
@@ -225,7 +230,8 @@ def cmd_add(args):
 def cmd_list_shares(args,role):
 
    import cernbox_utils.sharing 
-   retobj = cernbox_utils.sharing.list_shares(args.user,role,None,False,False,db,eos)
+   groups={}
+   retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,args.flat_list,False,db,eos)
    return {'shares':retobj}
 
 
