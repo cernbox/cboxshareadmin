@@ -43,6 +43,9 @@ def main():
    from cernbox_utils.eos import is_special_folder
 
    parser=cernbox_utils.script.arg_parser(description='Manipulate SWAN projects.')
+
+   parser.set_defaults(logfile="/var/log/cboxshareadmin.swanproject.log",configfile="/etc/cboxshareadmin.ini")
+
    subparser = parser.add_subparsers(title='command',dest='cmd')
 
    subcmd = subparser.add_parser('list-shared-by', help="list all SWAN projects shared by the user")
@@ -69,10 +72,11 @@ def main():
 
    args = parser.parse_args()
 
-   config = cernbox_utils.script.configure(args.config)
+   config = cernbox_utils.script.configure(args.configfile)
 
-   logger = cernbox_utils.script.getLogger(level=args.loglevel)
+   logger = cernbox_utils.script.getLogger(level=args.loglevel,filename=args.logfile)
 
+   logger.info("Running command: %s",str(sys.argv))
    logger.info("Using  DB: %s",config['dbhost'])
    logger.info("Using EOS: %s",config['eos_mgm_url'])
 

@@ -9,7 +9,8 @@ def arg_parser(**kwds):
     parser = argparse.ArgumentParser(**kwds)
     
     #parser.add_argument('--dry-run', '-n', action='store_true', help='show config options and print what tests would be run')
-    parser.add_argument('--config','-c',dest="config",default="/etc/cbox/config/config.php",action="store",help='config file in original owncloud php format')
+    parser.add_argument('--config','-c',dest="configfile",action="store",help='config file')
+    parser.add_argument('--logfile','-o',dest="logfile",action="store",help='logfile file')
 
     group = parser.add_mutually_exclusive_group()
 
@@ -21,8 +22,8 @@ def arg_parser(**kwds):
 
     group.add_argument('--json', dest='json', action="store_true", default=False, help='Use JSON as data exchange format (this is an "API" call by another program). Print result on stdout in a JSON format.')
 
-    parser.set_defaults(loglevel=logging.INFO)
-    #parser.set_defaults(loglevel=logging.DEBUG)
+    #parser.set_defaults(loglevel=logging.INFO)
+    parser.set_defaults(loglevel=logging.DEBUG)
 
     return parser
 
@@ -30,20 +31,17 @@ config = None
 
 def configure(config_path):
     global config
-    import string
+
+    import ConfigParser
+
+    cp = ConfigParser.SafeConfigParser()
+
+    cp.readfp(file(config_path))
+
     d = {}
 
-    for line in file(config_path):
-        line = line.strip()
-        if line and '=>' in line:
-            line = line.rstrip(',')
-            key,value = line.split('=>')
-            key = key.strip().strip("'")
-
-            value = value.strip().strip("'")
-            d[key] = value
-
-            #print key,value
+    for name,value in cp.items('general'):
+        d[name] = value
 
     config = d
     return config
@@ -52,19 +50,24 @@ def configure(config_path):
 import logging
 
 logger = None
-def getLogger(name="",level=None):
+logid = None
+
+def getLogger(name="",level=None, filename=None):
    global logger
    if not logger:
       if level is None:
           level = logging.INFO  # change here to DEBUG if you want to debug config stuff
 
+      import uuid
+      logid = str(uuid.uuid1())
       #h = logging.StreamHandler()
       #fmt = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
       #h.setFormatter(fmt)
       #h.setLevel(level)
-      logging.basicConfig(level=level)
+      #logging.basicConfig(level=level)
 
-      #logging.basicConfig(level=level,filename="/var/log/cernbox.log",filemode="w")
+      format="%(asctime)-15s %(levelname)-5s:"+logid+":%(message)s"
+      logging.basicConfig(level=level,format=format,filename=filename,filemode="a")
 
    names = ['cernbox']
    if name:
