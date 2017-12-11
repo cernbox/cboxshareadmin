@@ -72,6 +72,9 @@ def main():
 
    args = parser.parse_args()
 
+   # this script does json output by default
+   args.json = True 
+
    config = cernbox_utils.script.configure(args.configfile)
 
    logger = cernbox_utils.script.getLogger(level=args.loglevel,filename=args.logfile)
