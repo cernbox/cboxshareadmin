@@ -367,7 +367,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
                 target_path,target_size=None,0
  
  
-          if target_path or args.include_broken:
+          if target_path or include_broken:
              retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
              for s in nodes[target_id].shares:
                 acl = share2acl(s)
