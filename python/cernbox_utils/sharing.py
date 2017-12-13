@@ -35,12 +35,14 @@ def crud2db(crud):
         return 15
     raise ValueError(crud)
 
+# oc_share table permissions: anything bigger than 1 is "rw"
 def db2crud(db):
     if db == 1:
         return "r"
-    if db == 15:
+    elif db > 1:
         return "rw"
-    raise ValueError(db)
+    else:
+        raise ValueError(db)
 
 
 # convert CRUD specification (user) to EOS ACL bits
