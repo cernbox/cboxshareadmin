@@ -16,9 +16,11 @@ def share2acl(s):
    # this is the expected ACL entry in the shared directory tree
    acl = eos.AclEntry(name=s.share_with)
 
-   if is_egroup(s.share_with):
+   if s.share_with is None:		# Share by link
+      acl.entity = "-"
+   elif is_egroup(s.share_with):	# Share with egroups
       acl.entity = "egroup"
-   else:
+   else:				# Authenticated shares
       acl.entity = "u"
 
    if s.permissions == 1:
