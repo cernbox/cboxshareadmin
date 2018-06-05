@@ -110,7 +110,7 @@ def main():
    global args
    args = parser.parse_args()
 
-   config = cernbox_utils.script.configure(args.config)
+   config = cernbox_utils.script.configure(args.configfile)
 
    logger = cernbox_utils.script.getLogger(level=args.loglevel)
 
