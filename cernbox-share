@@ -225,7 +225,7 @@ def cmd_remove(args):
 
 def cmd_add(args):
    import cernbox_utils.sharing
-   return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl)
+   return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl,eos,db,config)
 
 def cmd_list_shares(args,role):
 
