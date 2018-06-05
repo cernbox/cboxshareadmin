@@ -16,9 +16,11 @@ def share2acl(s):
    # this is the expected ACL entry in the shared directory tree
    acl = eos.AclEntry(name=s.share_with)
 
-   if is_egroup(s.share_with):
+   if s.share_with is None:		# Share by link
+      acl.entity = "-"
+   elif is_egroup(s.share_with):	# Share with egroups
       acl.entity = "egroup"
-   else:
+   else:				# Authenticated shares
       acl.entity = "u"
 
    if s.permissions == 1:
@@ -67,7 +69,7 @@ def is_egroup(name):
 
 def split_sharee(sharee):
     entity,who = sharee.split(":")  # this may also raise ValueError
-    if not entity in ['u','egroup']:
+    if not entity in ['u','egroup', 'fed']:
         raise ValueError()
     return entity,who
 
@@ -393,7 +395,7 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
       # ... continue from common code above
 
       ACL = {'r':'read','rw':'read-write'}
-      ENTITY = {'u':'user','egroup':'egroup'}
+      ENTITY = {'u':'user','egroup':'egroup', 'fed':'federated'}
 
       logger.info("Add %s share for %s %s to tree %s",ACL[acl],ENTITY[share_with_entity],share_with_who,path)
  
@@ -410,7 +412,7 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
          logger.error(msg)
          raise ValueError(msg) # TODO: BAD REQUEST
       else:
-         db.insert_folder_share(owner,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
+         db.insert_folder_share(owner,share_with_entity,share_with_who,int(f.ino),file_target,cernbox_utils.sharing.crud2db(acl))
 
       try:
          # modify storage ACL

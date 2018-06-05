@@ -93,7 +93,7 @@ class ShareDB:
 
    # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
 
-   def insert_folder_share(self,owner,sharee,fid,file_target,permissions,stime=None,initiator=None):
+   def insert_folder_share(self,owner,sharee_entity,sharee,fid,file_target,permissions,stime=None,initiator=None):
       cur = self.db.cursor()
       logger = cernbox_utils.script.getLogger('db')
 
@@ -104,10 +104,13 @@ class ShareDB:
       assert(all(c.isalnum() for c in initiator))
       assert(all(c.isalnum() or c=='-' for c in sharee)) # egroups may have dash in the name
 
-      if '-' in sharee:
-         share_type = 1 # group
+      if sharee_entity == 'fed':
+         share_type = 6    # federated
       else:
-         share_type = 0 # user
+         if '-' in sharee:
+            share_type = 1 # group
+         else:
+            share_type = 0 # user
 
       assert(fid>0)
       assert(permissions>=0)

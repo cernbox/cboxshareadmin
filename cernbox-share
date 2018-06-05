@@ -110,7 +110,7 @@ def main():
    global args
    args = parser.parse_args()
 
-   config = cernbox_utils.script.configure(args.config)
+   config = cernbox_utils.script.configure(args.configfile)
 
    logger = cernbox_utils.script.getLogger(level=args.loglevel)
 
@@ -187,13 +187,13 @@ class CmdError(Exception):
 
 def cmd_remove(args):
 
-      from cernbox_utils.sharing import split_sharee
+      from cernbox_utils.sharing import split_sharee, check_share_target
 
       share_with_entity,share_with_who = split_sharee(args.sharee)
 
       path = args.path #split_path(args.path)
 
-      f = check_share_target(path, args.owner)
+      f = check_share_target(path, args.owner, eos, config)
 
       shares=db.get_share(sharee=share_with_who,owner=args.owner,fid=f.ino)
 
@@ -225,13 +225,13 @@ def cmd_remove(args):
 
 def cmd_add(args):
    import cernbox_utils.sharing
-   return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl)
+   return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl,eos,db,config)
 
 def cmd_list_shares(args,role):
 
    import cernbox_utils.sharing 
    groups={}
-   retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,args.flat_list,False,db,eos)
+   retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,None,args.flat_list,False,db,eos)
    return {'shares':retobj}
 
 
