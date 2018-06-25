@@ -3,15 +3,27 @@ import cernbox_utils.script
 class ShareInfo(cernbox_utils.script.Data):
    _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
 
+   def _check_consistency(self):
+      pass
+
+class TrustedServersInfo(cernbox_utils.script.Data):
+   _names = ['id', 'url', 'url_hash', 'token', 'shared_secret', 'status', 'sync_token']
 
    def _check_consistency(self):
       pass
+
 
 import MySQLdb
 
 
 # mapping: column_name => index
 #oc_share = dict([(name,i) for i,name in enumerate(['id','share_type','share_with','uid_owner','parent','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send'])])
+
+
+
+# quote strings to insert into MySQL DB
+def quote(x):
+   return '"'+x+'"'
 
 
 
@@ -34,7 +46,9 @@ class ShareDB:
          db = MySQLdb.connect(host=host,user=config['dbuser'],passwd=config['dbpassword'],db=config['dbname'])
 
       self.db = db
-      
+
+
+
    def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None,share_id=None):
       """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
       """
@@ -93,6 +107,15 @@ class ShareDB:
 
    # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
 
+
+
+   def insert_file_share(self):
+      pass
+      #TODO: to be implemented
+      return
+
+
+
    def insert_folder_share(self,owner,sharee_entity,sharee,fid,file_target,permissions,stime=None,initiator=None):
       cur = self.db.cursor()
       logger = cernbox_utils.script.getLogger('db')
@@ -117,9 +140,6 @@ class ShareDB:
       assert(stime is None or stime>0)
       assert(file_target!="")
 
-      def quote(x):
-         return '"'+x+'"'
-      
       item_source=fid
       item_target=quote("/%d"%fid)
       file_source=fid
@@ -135,6 +155,7 @@ class ShareDB:
       logger.debug(sql)
       cur.execute(sql)
       self.db.commit()
+
 
 
    def update_share(self,id,file_target=None):
@@ -177,3 +198,82 @@ class ShareDB:
 
       # Check referential integrity.      
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
+
+
+# Federated Sharing: Trusted servers
+   def add_trusted_server(self,url):
+      """ Add a server to the list of trusted ones.
+      """
+
+      cur = self.db.cursor()
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      #TODO: CRITICAL
+      #TODO: Understand how to set these values:
+      url_hash = "hash_%s"%(url)
+      token = "none"
+      shared_secret = "none"
+      status = 2
+      sync_token = "none"
+
+      #sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,%s,%d,%s)' % (url, url_hash, token, shared_secret, status, sync_token)
+      sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,NULL,%d,NULL);' % (quote(url), quote(url_hash), quote(token), status)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def remove_trusted_server(self,id):
+      """ Remove a server from the list of trusted ones represented by id.
+      """
+
+      cur = self.db.cursor()
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql = 'DELETE FROM oc_trusted_servers WHERE id=%d;'%int(id)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def get_trusted_server(self,url=None):
+      """ Get detailed information on one trusted server 
+          or the entire list list of trusted servers for federated shares.
+      """
+
+      cur = self.db.cursor()
+
+      WHERE = []
+
+      if url:
+         WHERE.append('url = "%s"'%url)
+
+      if WHERE:
+         WHERE = "WHERE " + (' and '.join(WHERE))
+      else:
+         WHERE = ""
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql = "SELECT * FROM oc_trusted_servers "+WHERE
+      logger.debug(sql)
+
+      cur.execute(sql)
+
+      trusted_servers = []
+      for row in cur.fetchall():
+         s = TrustedServersInfo()
+         for i,name in enumerate(TrustedServersInfo._names):
+            setattr(s,name,row[i])
+         trusted_servers.append(s)
+         logger.debug("ROW: %s",row)
+
+      return trusted_servers
+
+

@@ -79,6 +79,25 @@ def main():
 
    # TODO: OC_INTEGRATION add update command to update permissions by share id
 
+
+   # FEDERATED SHARING COMMANDS
+
+   subcmd = subparser.add_parser('add-trusted-server', help="add a trusted server to the system")
+   subcmd.add_argument("url", help="server url")
+   # TODO: Check the following args in the upstream ownCloud
+   #subcmd.add_argument("token", help="server token")
+   #subcmd.add_argument("shared-secret", help="server shared secret")
+   #subcmd.add_argument("status", help="trusted server configuration status")
+   #subcmd.add_argument("sync-token", help="syncronization token")
+
+   subcmd = subparser.add_parser('remove-trusted-server', help="remove a trusted server to the system")
+   subcmd.add_argument("url", help="server url")
+   #subcmd.add_argument("token", help="server token")
+   #subcmd.add_argument("shared-secred", help="server shared secred")
+
+   subcmd = subparser.add_parser('list-trusted-servers', help="list all trusted servers for federated shares")
+
+
    # ADMIN COMMANDS
 
    subcmd = subparser.add_parser('acl_update', help="update the sharing ACL for a path and all subdirectories")
@@ -127,10 +146,6 @@ def main():
 
    import cernbox_utils.sharing
 
-   if args.cmd == "acl_update":
-      import cernbox_utils.cmd_share_admin
-      cernbox_utils.cmd_share_admin.acl_update(args,config,eos,db)
-
    if args.cmd == "remove":
 
       try:
@@ -159,6 +174,33 @@ def main():
       except CmdError:
          sys.exit(2)
 
+   # Federated Sharing: Trusted servers
+   if args.cmd == "add-trusted-server":
+
+      try:
+         print_json(cmd_add_trusted_server(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "remove-trusted-server":
+
+      try:
+         print_json(cmd_remove_trusted_server(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "list-trusted-servers":
+
+      try:
+         print_json(cmd_list_trusted_servers(args))
+      except CmdError:
+         sys.exit(2)
+
+
+   # Admin commands
+   if args.cmd == "acl_update":
+      import cernbox_utils.cmd_share_admin
+      cernbox_utils.cmd_share_admin.acl_update(args,config,eos,db)
 
    if args.cmd == "show-other-acls":
       import cernbox_utils.cmd_share_admin
@@ -166,18 +208,15 @@ def main():
 
    if args.cmd == "remove-orphan-xbits":
       import cernbox_utils.cmd_share_admin
-
       cernbox_utils.cmd_share_admin.remove_orphan_xbits(args,config,eos,db)
-      
+
 
    if args.cmd == "summary":
       import cernbox_utils.cmd_share_admin
-
       cernbox_utils.cmd_share_admin.summary(args,config,eos,db)
 
    if args.cmd == "verify":
       import cernbox_utils.cmd_share_admin
-
       cernbox_utils.cmd_share_admin.verify(args,config,eos,db)
 
    
@@ -227,12 +266,30 @@ def cmd_add(args):
    import cernbox_utils.sharing
    return cernbox_utils.sharing.add_share(args.owner,args.path,args.sharee,args.acl,eos,db,config)
 
-def cmd_list_shares(args,role):
 
+def cmd_list_shares(args,role):
    import cernbox_utils.sharing 
    groups={}
    retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,None,args.flat_list,False,db,eos)
    return {'shares':retobj}
+
+
+# Federated Sharing: Trusted servers
+def cmd_add_trusted_server(args):
+   import cernbox_utils.sharing
+   return cernbox_utils.sharing.add_trusted_server(args.url,db)
+
+
+def cmd_remove_trusted_server(args):
+   import cernbox_utils.sharing
+   return cernbox_utils.sharing.remove_trusted_server(args.url,db)
+
+
+def cmd_list_trusted_servers(args):
+   import cernbox_utils.sharing
+   retobj = cernbox_utils.sharing.list_trusted_servers(db)
+   return {'trusted_servers_list':retobj}
+
 
 
 if __name__ == "__main__":

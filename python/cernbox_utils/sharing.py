@@ -287,6 +287,7 @@ def compute_acls(fid,eos,db,owner=None):
 class ShareNode(cernbox_utils.script.Data):
    _names = ['inode','owner','shares']
 
+
 def collapse_into_nodes(shares):
     """
     Collapse flat share list into a list of nodes.
@@ -301,6 +302,7 @@ def collapse_into_nodes(shares):
         nodes[s.item_source].shares.add(s)
 
     return nodes
+
 
 def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos):
     """ Return JSON-style dictionary listing all shares for a user in a role of "owner" or "sharee". 
@@ -355,8 +357,8 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
           if share_path or include_broken:
              retobj[s.id] = {'uid_owner':s.uid_owner,'uid_initiator':s.uid_initiator,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
  
- 
        return retobj
+
     else:
        retobj = []
        nodes = collapse_into_nodes(shares)
@@ -378,6 +380,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
                 retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
  
        return retobj
+
 
 def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
 
@@ -426,4 +429,58 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
          logger.critical("Something went pretty wrong... %s %s",hash(x),x)
          #rollback the insert?
          raise
+
+
+# Federated Sharing: Trusted servers
+def add_trusted_server(url,db):
+    """ Add a trusted server for federated sharing
+    """
+
+    logger = cernbox_utils.script.getLogger('trusted_servers')
+
+    logger.info("Add %s as trusted server",url)
+
+    trusted_server=db.get_trusted_server(url)
+    if trusted_server:
+       msg="Trusted server already exists, server url: %s"%url
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
+    else:
+       db.add_trusted_server(url)
+
+
+
+def remove_trusted_server(url,db):
+    """ Remove a trusted server for federated sharing
+    """
+
+    logger = cernbox_utils.script.getLogger('trusted_servers')
+
+    logger.info("Removing %s from trusted server list",url)
+
+    trusted_server=db.get_trusted_server(url)
+    if trusted_server:
+       db.remove_trusted_server(trusted_server[0].id)
+    else:
+       msg="Server is not part of the trusted server list, server url: %s"%url
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
+
+
+
+def list_trusted_servers(db):
+    """ Return JSON-style dictionary listing all trusted servers for federated sharing.
+    """
+    logger = cernbox_utils.script.getLogger('trusted_servers')
+
+    trusted_servers=db.get_trusted_server()
+
+    retobj = []
+
+    for ts in trusted_servers:
+       retobj.append({'url':ts.url, 'url_hash':ts.url_hash, 'token':ts.token, 'shared_secret':ts.shared_secret, 'status':ts.status, 'sync_token':ts.sync_token})
+       pass
+
+    return retobj
+
 
