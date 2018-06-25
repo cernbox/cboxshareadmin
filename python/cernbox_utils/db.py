@@ -6,6 +6,12 @@ class ShareInfo(cernbox_utils.script.Data):
    def _check_consistency(self):
       pass
 
+class ExternalSharesInfo(cernbox_utils.script.Data):
+   _names = ['id', 'remote', 'remote_id', 'share_token', 'password', 'name', 'owner', 'user', 'mountpoint', 'mountpoint_hash', 'accepted']
+
+   def _check_consistency(self):
+      pass
+
 class TrustedServersInfo(cernbox_utils.script.Data):
    _names = ['id', 'url', 'url_hash', 'token', 'shared_secret', 'status', 'sync_token']
 
@@ -200,6 +206,120 @@ class ShareDB:
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
 
 
+# Federated Sharing: External shares
+   def insert_external_share(self,remote,remote_id,share_token,password,name,owner,user):
+      """ Add an external share.
+      """
+
+      cur = self.db.cursor()
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      #TODO: CRITICAL
+      #TODO: Understand how to set these values:
+      mountpoint = "{{TemporaryMPName#/%s}}"%name
+      mountpoint_hash = "hash_%s"%mountpoint
+
+      remote_id = int(remote_id)
+
+      sql = 'INSERT INTO oc_share_external(remote, remote_id, share_token, password, name, owner, user, mountpoint, mountpoint_hash, accepted) values (%s,%d,%s,%s,%s,%s,%s,%s,%s,%d);' % (quote(remote), remote_id, quote(share_token), quote(password), quote(name), quote(owner), quote(user), quote(mountpoint), quote(mountpoint_hash), 0)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def accept_external_share(self,id,mountpoint=None):
+      """ Accept an external share and set its final mount point.
+      """
+
+      cur = self.db.cursor()
+      logger = cernbox_utils.script.getLogger('db')
+
+      set_cmd = []
+
+      set_cmd.append("accepted = 1")
+
+      if mountpoint:
+         #TODO: CRITICAL
+         #TODO: Understand how to set these values:
+         mountpoint_hash = "hash_%s"%mountpoint
+         set_cmd.append("mountpoint = '%s'"%mountpoint)
+         set_cmd.append("mountpoint_hash = '%s'"%mountpoint_hash)
+
+      set_cmd = ",".join(set_cmd)
+
+      sql="UPDATE oc_share_external SET %s WHERE id=%d;"%(set_cmd,id)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def delete_external_share(self,id):
+      """ Delete an external share.
+      """
+
+      cur = self.db.cursor()
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql = 'DELETE FROM oc_share_external WHERE id=%d;'%int(id)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def get_external_share(self,remote=None,name=None,owner=None,user=None,accepted=None):
+      """ Get detailed information on one share
+          or the entire list of shares for one local user or a remote server//owner
+      """
+      cur = self.db.cursor()
+
+      WHERE = []
+
+      if remote:
+         WHERE.append('remote = "%s"'%remote)
+
+      if name:
+         WHERE.append('name = "%s"'%name)
+
+      if owner:
+         WHERE.append('owner = "%s"'%owner)
+
+      if user:
+         WHERE.append('user = "%s"'%user)
+
+      if accepted:
+         WHERE.append('accepted = "%d"'%accepted)
+
+      if WHERE:
+         WHERE = "WHERE " + (' and '.join(WHERE))
+      else:
+         WHERE = ""
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql = "SELECT * FROM oc_share_external "+WHERE
+      logger.debug(sql)
+
+      cur.execute(sql)
+
+      external_shares = []
+      for row in cur.fetchall():
+         s = ExternalSharesInfo()
+         for i,name in enumerate(ExternalSharesInfo._names):
+            setattr(s,name,row[i])
+         external_shares.append(s)
+         logger.debug("ROW: %s",row)
+
+      return external_shares
+
+
+
 # Federated Sharing: Trusted servers
    def add_trusted_server(self,url):
       """ Add a server to the list of trusted ones.
@@ -216,6 +336,7 @@ class ShareDB:
       shared_secret = "none"
       status = 2
       sync_token = "none"
+      status = int(status)
 
       #sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,%s,%d,%s)' % (url, url_hash, token, shared_secret, status, sync_token)
       sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,NULL,%d,NULL);' % (quote(url), quote(url_hash), quote(token), status)

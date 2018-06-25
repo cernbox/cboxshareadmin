@@ -82,6 +82,46 @@ def main():
 
    # FEDERATED SHARING COMMANDS
 
+   subcmd = subparser.add_parser('add-external-share', help="add a share from a federated server")
+   subcmd.add_argument("remote", help="remote server url")
+   subcmd.add_argument("remote_id", help="server url")
+   subcmd.add_argument("share_token", help="server url")
+   subcmd.add_argument("password", help="server url")
+   subcmd.add_argument("name", help="name of the shared resource")
+   subcmd.add_argument("owner", help="remote owner of the resource")
+   subcmd.add_argument("user", help="local sharee")
+   #subcmd.add_argument("mountpoint", help="local mountpoint where to show the shared resource")
+   #subcmd.add_argument("mountpoint-hash", help="hash of the local mountpoint")
+   #subcmd.add_argument("accepted", help="local sharee has accepted the share")
+
+   subcmd = subparser.add_parser('accept-external-share', help="accept a share from a federated server")
+   subcmd.add_argument("remote", help="remote server url")
+   #subcmd.add_argument("remote_id", help="server url")
+   #subcmd.add_argument("share_token", help="server url")
+   subcmd.add_argument("name", help="name of the shared resource")
+   subcmd.add_argument("owner", help="remote owner of the resource")
+   subcmd.add_argument("user", help="local sharee")
+   subcmd.add_argument("mountpoint", help="local mountpoint where to show the shared resource")
+
+   subcmd = subparser.add_parser('remove-external-share', help="remove a share from a federated server")
+   subcmd.add_argument("remote", help="remote server url")
+   #subcmd.add_argument("remote_id", help="server url")
+   #subcmd.add_argument("share_token", help="server url")
+   subcmd.add_argument("name", help="name of the shared resource")
+   subcmd.add_argument("owner", help="remote owner of the resource")
+   subcmd.add_argument("user", help="local sharee")
+
+   subcmd = subparser.add_parser('list-external-shared-by', help="list all federated shares created by a remote user from a trusted server")
+   subcmd.add_argument("remote", help="remote server url")
+   subcmd.add_argument("owner", help="remote owner of the resource")
+
+   subcmd = subparser.add_parser('list-external-shared-from', help="list all federated shares from a trusted server")
+   subcmd.add_argument("remote", help="remote server url")
+
+   subcmd = subparser.add_parser('list-external-shared-with', help="list all federated shares given to a local user")
+   subcmd.add_argument("user", help="local sharee")
+
+
    subcmd = subparser.add_parser('add-trusted-server', help="add a trusted server to the system")
    subcmd.add_argument("url", help="server url")
    # TODO: Check the following args in the upstream ownCloud
@@ -174,23 +214,59 @@ def main():
       except CmdError:
          sys.exit(2)
 
+
+   # Federated Sharing: External shares
+   if args.cmd == "add-external-share":
+      try:
+         print_json(cmd_add_external_share(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "accept-external-share":
+      try:
+         print_json(cmd_accept_external_share(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "remove-external-share":
+      try:
+         print_json(cmd_remove_external_share(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "list-external-shared-by":
+      try:
+         print_json(cmd_list_external_shared(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "list-external-shared-from":
+      try:
+         print_json(cmd_list_external_shared(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "list-external-shared-with":
+      try:
+         print_json(cmd_list_external_shared(args))
+      except CmdError:
+         sys.exit(2)
+
+
    # Federated Sharing: Trusted servers
    if args.cmd == "add-trusted-server":
-
       try:
          print_json(cmd_add_trusted_server(args))
       except CmdError:
          sys.exit(2)
 
    if args.cmd == "remove-trusted-server":
-
       try:
          print_json(cmd_remove_trusted_server(args))
       except CmdError:
          sys.exit(2)
 
    if args.cmd == "list-trusted-servers":
-
       try:
          print_json(cmd_list_trusted_servers(args))
       except CmdError:
@@ -272,6 +348,41 @@ def cmd_list_shares(args,role):
    groups={}
    retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,None,args.flat_list,False,db,eos)
    return {'shares':retobj}
+
+
+
+# Federated Sharing: External shares
+def cmd_add_external_share(args):
+   import cernbox_utils.sharing
+   return cernbox_utils.sharing.add_external_share(args.remote,args.remote_id,args.share_token,args.password,args.name,args.owner,args.user,db)
+
+
+def cmd_accept_external_share(args):
+   import cernbox_utils.sharing
+   #return cernbox_utils.sharing.accept_external_share(args.remote,args.remote_id,args.share_token,args.name,args.owner,args.user,args.mountpoint,db)
+   return cernbox_utils.sharing.accept_external_share(args.remote,args.name,args.owner,args.user,args.mountpoint,db)
+
+
+def cmd_remove_external_share(args):
+   import cernbox_utils.sharing
+   return cernbox_utils.sharing.remove_external_share(args.remote,args.name,args.owner,args.user,db)
+
+
+def cmd_list_external_shared(args):
+   if all('remote' and 'owner') in dir(args):
+      retobj = cernbox_utils.sharing.list_external_shares(db,remote=args.remote,owner=args.owner)
+      return {'external_shared_by':retobj}
+   elif 'remote' in dir(args):
+      retobj = cernbox_utils.sharing.list_external_shares(db,remote=args.remote)
+      return {'external_shared_from':retobj}
+   elif 'user' in dir(args):
+      retobj = cernbox_utils.sharing.list_external_shares(db,user=args.user)
+      return {'external_shares_with':retobj}
+   else:
+      msg="Unsopported type of listing external shares"
+      logger.error(msg)
+      raise ValueError(msg) # TODO: BAD REQUEST
+
 
 
 # Federated Sharing: Trusted servers

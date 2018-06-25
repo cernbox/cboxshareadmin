@@ -352,7 +352,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
                 # eos entry does not exist
                 logger.warning("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' inode=%s",s.id,s.uid_owner,s.share_with,s.file_target,s.item_source)
                 share_path=None
- 
+
  
           if share_path or include_broken:
              retobj[s.id] = {'uid_owner':s.uid_owner,'uid_initiator':s.uid_initiator,'share_id':s.id, 'share_with':s.share_with,'type':s.share_type,'target_inode':s.item_source,'target_name':s.file_target, 'permissions':s.permissions, 'created' : datetime.datetime.fromtimestamp(s.stime).isoformat(), 'expires' : dtisoformat(s.expiration), 'token':s.token, 'target_path':share_path }
@@ -371,7 +371,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
                 # eos entry does not exist
                 logger.warning("DANGLING_SHARE inode=%s",target_id)
                 target_path,target_size=None,0
- 
+
  
           if target_path or include_broken:
              retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
@@ -431,6 +431,84 @@ def add_share(owner,path,sharee,acl,eos,db,config,storage_acl_update=True):
          raise
 
 
+# Federated Sharing: External shares
+def add_external_share(remote,remote_id,share_token,password,name,owner,user,db):
+    """ Add an external share
+        (to be confirmed by 'accept_external_share' once the user accepted it)
+    """
+
+    logger = cernbox_utils.script.getLogger('external_shares')
+
+    logger.info("Add external share %s owned by %s from %s for user %s",name,owner,remote,user)
+
+    ext_share=db.get_external_share(remote,name,owner,user) # TODO: Should we leverage on share_token instead?
+
+    if ext_share:
+       msg="Share already exists, resource %s owned by %s from %s for user %s"%(ext_share[0].name,ext_share[0].owner,ext_share[0].remote,ext_share[0].user)
+       logger.error(msg)
+       raise ValueError(msg) # TODO: Bad request
+    else:
+       db.insert_external_share(remote,remote_id,share_token,password,name,owner,user)
+
+
+
+#def accept_exterinal_share(remote,remote_id,share_token,name,owner,user,mountpoint,db):
+def accept_external_share(remote,name,owner,user,mountpoint,db):
+    """ Accept a (previously added) external share.
+    """
+
+    logger = cernbox_utils.script.getLogger('external_shares')
+
+    logger.info("Accept external share %s owned by %s from %s for user %s",name,owner,remote,user)
+
+    ext_share=db.get_external_share(remote,name,owner,user)
+
+    if ext_share:
+       db.accept_external_share(ext_share[0].id,mountpoint)
+    else:
+       msg="Share does not exist, resource %s owned by %s from %s for user %s"%(ext_share[0].name,ext_share[0].owner,ext_share[0].remote,ext_share[0].user)
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
+
+
+def remove_external_share(remote,name,owner,user,db):
+    """ Delete an external share.
+    """
+
+    logger = cernbox_utils.script.getLogger('external_shares')
+
+    logger.info("Remove external share %s owned by %s from %s for user %s",name,owner,remote,user)
+
+    ext_share=db.get_external_share(remote,name,owner,user)
+
+    if ext_share:
+       db.delete_external_share(ext_share[0].id)
+    else:
+       msg="Share does not exist, resource %s owned by %s from %s for user %s"%(ext_share[0].name,ext_share[0].owner,ext_share[0].remote,ext_share[0].user)
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
+
+
+def list_external_shares(db,remote=None,owner=None,user=None,accepted=None):
+    """ Return JSON-style dictionary listing all shares for
+        1.  a local user in a role of "sharee" ("list-external-shared-with")
+        2a. a remote server in a role of host for the shared resources ("list-external-shared-by")
+        2b. a remote user in a role of "owner" ("list-external-shared-by")
+    """
+
+    logger = cernbox_utils.script.getLogger('external_shares')
+
+    ext_shares = db.get_external_share(remote=remote,owner=owner,user=user,accepted=accepted)
+
+    retobj = []
+
+    for es in ext_shares:
+       retobj.append({'remote':es.remote, 'remote-id':es.remote_id, 'share_token':es.share_token, 'password':es.password, 'name':es.name, 'owner':es.owner, 'user':es.user, 'mountpoint':es.mountpoint, 'mountpoint-hash':es.mountpoint_hash, 'accepted':es.accepted})
+
+    return retobj
+
+
+
 # Federated Sharing: Trusted servers
 def add_trusted_server(url,db):
     """ Add a trusted server for federated sharing
@@ -479,8 +557,6 @@ def list_trusted_servers(db):
 
     for ts in trusted_servers:
        retobj.append({'url':ts.url, 'url_hash':ts.url_hash, 'token':ts.token, 'shared_secret':ts.shared_secret, 'status':ts.status, 'sync_token':ts.sync_token})
-       pass
 
     return retobj
-
 
