@@ -33,6 +33,13 @@ def quote(x):
 
 
 
+# compute md5 digest
+def md5_digest(x):
+   import hashlib
+   return hashlib.md5(x).hexdigest()
+
+
+
 class ShareDB:
 
    def __init__(self):
@@ -215,10 +222,8 @@ class ShareDB:
 
       logger = cernbox_utils.script.getLogger('db')
 
-      #TODO: CRITICAL
-      #TODO: Understand how to set these values:
-      mountpoint = "{{TemporaryMPName#/%s}}"%name
-      mountpoint_hash = "hash_%s"%mountpoint
+      mountpoint = "{{TemporaryMountPointName#%s}}"%name
+      mountpoint_hash = md5_digest(mountpoint)
 
       remote_id = int(remote_id)
 
@@ -242,9 +247,7 @@ class ShareDB:
       set_cmd.append("accepted = 1")
 
       if mountpoint:
-         #TODO: CRITICAL
-         #TODO: Understand how to set these values:
-         mountpoint_hash = "hash_%s"%mountpoint
+         mountpoint_hash = md5_digest(mountpoint)
          set_cmd.append("mountpoint = '%s'"%mountpoint)
          set_cmd.append("mountpoint_hash = '%s'"%mountpoint_hash)
 
