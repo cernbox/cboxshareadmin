@@ -510,13 +510,13 @@ def list_external_shares(db,remote=None,owner=None,user=None,accepted=None):
 
 
 # Federated Sharing: Trusted servers
-def add_trusted_server(url,db):
+def add_trusted_server(url,token,db):
     """ Add a trusted server for federated sharing
     """
 
     logger = cernbox_utils.script.getLogger('trusted_servers')
 
-    logger.info("Add %s as trusted server",url)
+    logger.info("Add %s as trusted server with token %s",url,token)
 
     trusted_server=db.get_trusted_server(url)
     if trusted_server:
@@ -524,7 +524,49 @@ def add_trusted_server(url,db):
        logger.error(msg)
        raise ValueError(msg) # TODO: BAD REQUEST
     else:
-       db.add_trusted_server(url)
+       db.add_trusted_server(url,token)
+
+
+
+def set_trusted_server_shared_secret(url,shared_secret,db):
+    """ Set shared secret for a trusted server
+    """
+
+    logger = cernbox_utils.script.getLogger('trusted_servers')
+
+    logger.info("Add shared secret %s for trusted server %s",shared_secret,url)
+
+    trusted_server=db.get_trusted_server(url)
+    if trusted_server:
+       db.set_trusted_server_shared_secret(trusted_server[0].id,shared_secret)
+    else:
+       msg="Server is not part of the trusted server list, server url: %s"%url
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
+
+
+
+def set_trusted_server_sync_token(url,sync_token,db):
+    """ Set sync token for a trusted server
+    """
+
+    logger = cernbox_utils.script.getLogger('trusted_servers')
+
+    logger.info("Add sync token %s for trusted server %s",sync_token,url)
+
+    trusted_server=db.get_trusted_server(url)
+    if trusted_server:
+       if trusted_server[0].shared_secret:
+          # When shared_secret and sync_token are set, status is 1
+          new_status = 1
+          logger.info("Shared secret is set for server %s. Updating status to %d",url,new_status)
+          db.set_trusted_server_sync_token(trusted_server[0].id,sync_token,new_status)
+       else:
+          db.set_trusted_server_sync_token(trusted_server[0].id,sync_token)
+    else:
+       msg="Server is not part of the trusted server list, server url: %s"%url
+       logger.error(msg)
+       raise ValueError(msg) # TODO: BAD REQUEST
 
 
 

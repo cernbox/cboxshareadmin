@@ -42,6 +42,14 @@ def print_json(obj):
 def print_json_error(msg):
       print_json({"error" : str(msg)})
 
+def secure_server_url(url):
+      if url.startswith('http://'):
+         return url.replace('http://', 'https://')
+      if url.startswith('https://'):
+         return url
+      return 'https://'+url
+
+
 
 import os, os.path, sys
 import subprocess
@@ -122,13 +130,20 @@ def main():
    subcmd.add_argument("user", help="local sharee")
 
 
-   subcmd = subparser.add_parser('add-trusted-server', help="add a trusted server to the system")
+   subcmd = subparser.add_parser('add-trusted-server', help="add a trusted server")
    subcmd.add_argument("url", help="server url")
-   # TODO: Check the following args in the upstream ownCloud
-   #subcmd.add_argument("token", help="server token")
-   #subcmd.add_argument("shared-secret", help="server shared secret")
+   subcmd.add_argument("token", help="server token")
+   #subcmd.add_argument("shared_secret", help="server shared secret")
    #subcmd.add_argument("status", help="trusted server configuration status")
-   #subcmd.add_argument("sync-token", help="syncronization token")
+   #subcmd.add_argument("sync_token", help="syncronization token")
+
+   subcmd = subparser.add_parser('set-trusted-server-shared-secret', help="set the shared secret for trusted server")
+   subcmd.add_argument("url", help="server url")
+   subcmd.add_argument("shared_secret", help="server shared secret")
+
+   subcmd = subparser.add_parser('set-trusted-server-sync-token', help="set the sync token for trusted server")
+   subcmd.add_argument("url", help="server url")
+   subcmd.add_argument("sync_token", help="syncronization token")
 
    subcmd = subparser.add_parser('remove-trusted-server', help="remove a trusted server to the system")
    subcmd.add_argument("url", help="server url")
@@ -260,6 +275,18 @@ def main():
       except CmdError:
          sys.exit(2)
 
+   if args.cmd == "set-trusted-server-shared-secret":
+      try:
+         print_json(cmd_set_trusted_server_shared_secret(args))
+      except CmdError:
+         sys.exit(2)
+
+   if args.cmd == "set-trusted-server-sync-token":
+      try:
+         print_json(cmd_set_trusted_server_sync_token(args))
+      except CmdError:
+         sys.exit(2)
+
    if args.cmd == "remove-trusted-server":
       try:
          print_json(cmd_remove_trusted_server(args))
@@ -388,12 +415,26 @@ def cmd_list_external_shared(args):
 # Federated Sharing: Trusted servers
 def cmd_add_trusted_server(args):
    import cernbox_utils.sharing
-   return cernbox_utils.sharing.add_trusted_server(args.url,db)
+   server_url = secure_server_url(args.url)
+   return cernbox_utils.sharing.add_trusted_server(server_url,args.token,db)
+
+
+def cmd_set_trusted_server_shared_secret(args):
+   import cernbox_utils.sharing
+   server_url = secure_server_url(args.url)
+   return cernbox_utils.sharing.set_trusted_server_shared_secret(server_url,args.shared_secret,db)
+
+
+def cmd_set_trusted_server_sync_token(args):
+   import cernbox_utils.sharing
+   server_url = secure_server_url(args.url)
+   return cernbox_utils.sharing.set_trusted_server_sync_token(server_url,args.sync_token,db)
 
 
 def cmd_remove_trusted_server(args):
    import cernbox_utils.sharing
-   return cernbox_utils.sharing.remove_trusted_server(args.url,db)
+   server_url = secure_server_url(args.url)
+   return cernbox_utils.sharing.remove_trusted_server(server_url,db)
 
 
 def cmd_list_trusted_servers(args):

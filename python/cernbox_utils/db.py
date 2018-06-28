@@ -26,17 +26,21 @@ import MySQLdb
 #oc_share = dict([(name,i) for i,name in enumerate(['id','share_type','share_with','uid_owner','parent','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send'])])
 
 
-
 # quote strings to insert into MySQL DB
 def quote(x):
    return '"'+x+'"'
-
 
 
 # compute md5 digest
 def md5_digest(x):
    import hashlib
    return hashlib.md5(x).hexdigest()
+
+
+# compute sha1 digest
+def sha1_digest(x):
+   import hashlib
+   return hashlib.sha1(x).hexdigest()
 
 
 
@@ -324,7 +328,7 @@ class ShareDB:
 
 
 # Federated Sharing: Trusted servers
-   def add_trusted_server(self,url):
+   def add_trusted_server(self,url,token):
       """ Add a server to the list of trusted ones.
       """
 
@@ -332,17 +336,61 @@ class ShareDB:
 
       logger = cernbox_utils.script.getLogger('db')
 
-      #TODO: CRITICAL
-      #TODO: Understand how to set these values:
-      url_hash = "hash_%s"%(url)
-      token = "none"
-      shared_secret = "none"
-      status = 2
-      sync_token = "none"
-      status = int(status)
+      if url[0:7] == 'http://':
+         stripped_url = url[7:]
+      elif url[0:8] == 'https://':
+         stripped_url = url[8:]
+      url_hash = sha1_digest(stripped_url)
 
-      #sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,%s,%d,%s)' % (url, url_hash, token, shared_secret, status, sync_token)
-      sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,NULL,%d,NULL);' % (quote(url), quote(url_hash), quote(token), status)
+      sql = 'INSERT INTO oc_trusted_servers(url, url_hash, token, shared_secret, status, sync_token) values (%s,%s,%s,NULL,2,NULL);' % (quote(url), quote(url_hash), quote(token))
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def set_trusted_server_shared_secret(self,id,shared_secret):
+      """ Set shared secret for a trusted server
+      """
+
+      cur = self.db.cursor()
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      set_cmd = []
+
+      set_cmd.append("shared_secret = '%s'"%shared_secret)
+      set_cmd.append("token = ''") # When setting the shared secret, the token should be removed
+
+      set_cmd = ",".join(set_cmd)
+
+      sql="UPDATE oc_trusted_servers SET %s WHERE id=%d;"%(set_cmd,id)
+
+      logger.debug(sql)
+      cur.execute(sql)
+      self.db.commit()
+
+
+
+   def set_trusted_server_sync_token(self,id,sync_token,new_status=None):
+      """ Set sync token for a trusted server
+      """
+
+      cur = self.db.cursor()
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      set_cmd = []
+
+      set_cmd.append("sync_token = '%s'"%sync_token)
+
+      if new_status:
+         set_cmd.append("status = '%d'"%new_status)
+
+      set_cmd = ",".join(set_cmd)
+
+      sql="UPDATE oc_trusted_servers SET %s WHERE id=%d;"%(set_cmd,id)
 
       logger.debug(sql)
       cur.execute(sql)
