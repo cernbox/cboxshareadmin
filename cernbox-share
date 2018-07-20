@@ -231,7 +231,7 @@ def cmd_list_shares(args,role):
 
    import cernbox_utils.sharing 
    groups={}
-   retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,args.flat_list,False,db,eos)
+   retobj = cernbox_utils.sharing.list_shares(args.user,role,groups,None,"regular",args.flat_list,False,db,eos)
    return {'shares':retobj}
 
 
