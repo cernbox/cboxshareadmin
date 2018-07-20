@@ -107,10 +107,12 @@ def main():
    subcmd.add_argument("path", help="top of the tree to check")
    subcmd.add_argument("name", help="name in ACL")
    
+   parser.set_defaults(configfile="/etc/cboxshareadmin.ini")
+
    global args
    args = parser.parse_args()
 
-   config = cernbox_utils.script.configure(args.config)
+   config = cernbox_utils.script.configure(args.configfile)
 
    logger = cernbox_utils.script.getLogger(level=args.loglevel)
 
