@@ -50,7 +50,7 @@ class EOS:
 
         #TODO: find /usr/bin/eos by PATH?
 
-        cmd = eos + [self.mgmurl] + list(args)
+        cmd = eos + [self.mgmurl] + [ x for x in args if x ] # filter out None or "" arguments
         return cmd
 
     def _runcmd(self,cmd,**opts):
