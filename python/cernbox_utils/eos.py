@@ -28,6 +28,9 @@ class EOS:
         self.env = {'EOS_MGM_URL':mgmurl, 'XRD_NETWORKSTACK':'IPv4'} 
         # EOS_MGM_URL is needed for some convoluted cases such as 'eos cp -r' 
         # which actually spawns a subprocess without correctly passing the mgmurl as a command-line option
+        
+        self.cmd_opts = {} # default options for runcmd
+
 
         import logging
         if logger.getEffectiveLevel()<=logging.DEBUG:
@@ -54,7 +57,9 @@ class EOS:
         return cmd
 
     def _runcmd(self,cmd,**opts):
-       return cernbox_utils.script.runcmd(cmd,env=self.env,shell=False,**opts)
+       cmd_opts=self.cmd_opts.copy()
+       cmd_opts.update(opts)
+       return cernbox_utils.script.runcmd(cmd,env=self.env,shell=False,**cmd_opts)
 
     def ls(self,path,opts,role=None):
 
