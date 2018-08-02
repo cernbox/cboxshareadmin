@@ -60,14 +60,18 @@ def getLogger(name="",level=None, filename=None):
 
       import uuid
       logid = str(uuid.uuid1())
-      #h = logging.StreamHandler()
-      #fmt = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
-      #h.setFormatter(fmt)
       #h.setLevel(level)
       #logging.basicConfig(level=level)
 
       format="%(asctime)-15s %(levelname)-5s:"+logid+":%(message)s"
       logging.basicConfig(level=level,format=format,filename=filename,filemode="a")
+
+      # add screen output
+      if filename:
+          h = logging.StreamHandler()
+          fmt = logging.Formatter("%(levelname)s:%(message)s")
+          h.setFormatter(fmt)
+          logging.root.addHandler(h)
 
    names = ['cernbox']
    if name:
