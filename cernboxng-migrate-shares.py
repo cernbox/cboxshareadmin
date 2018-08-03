@@ -183,6 +183,7 @@ def migrate1(results,cursor):
                    if not new_file_target.startswith('/.sys.v#.') and item_type=='file':
                        print 'WARNING: file_target does not start with /.sys.v#.: ',id,new_file_target,file_source
                    share_name = new_file_target.replace('/.sys.v#.','')
+                   share_name = share_name.strip('/') # remove slashes from both ends
                    cursor.execute( ("update oc_share set file_target = NULL, share_name = '%s' where id = %s"%( MySQLdb.escape_string(share_name),str(id))) )
    print "Processed %d shares - done"%i
 
