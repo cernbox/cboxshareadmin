@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ------------------------------------------------------------------------------
 # File: migrate-shares-eoshome.py
 # Author: Jakub Moscicki <jakub.moscicki@cern.ch>
@@ -22,6 +23,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ******************************************************************************
+
+
+# WARNING: if you get permission denied errors, do a kdestroy,
+# somehow it interfers with the authentication mechanism of EOS.
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Perform internal setup of the environment.
