@@ -213,7 +213,7 @@ def migrate2(results,cursor):
            eos_home.env=None
             
            try:
-              f2 = eos_home.fileinfo("inode:"+str(file_source))
+              f2 = eos_home.fileinfo(f1.file.replace('/eos/user/.migrated/','/eos/user/',1)) # original homedir was moved to .migrated directory, so we need to remove that to get the correct path on eoshome
            except subprocess.CalledProcessError,x:
               if 'No such file or directory' in x.stderr:
                  logger.error("File %s does not exist in eoshome (but it exists in eosuser): %s",f1.file,str(f1))
