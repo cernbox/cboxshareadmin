@@ -189,6 +189,7 @@ def migrate1(results,cursor):
 
 def migrate2(results,cursor):
    i=0
+   skip_cnt=0
    for share_info in results:
            i+=1
            if i%1000 == 1:
@@ -213,10 +214,16 @@ def migrate2(results,cursor):
            eos_home.env=None
             
            try:
+              # skip shares that went to the recycle bin
+              if f1.file.startswith('/eos/user/proc/recycle'):
+                 skip_cnt+=1
+                 continue
+
               f2 = eos_home.fileinfo(f1.file.replace('/eos/user/.migrated/','/eos/user/',1)) # original homedir was moved to .migrated directory, so we need to remove that to get the correct path on eoshome
            except subprocess.CalledProcessError,x:
               if 'No such file or directory' in x.stderr:
                  logger.error("File %s does not exist in eoshome (but it exists in eosuser): %s",f1.file,str(f1))
+                 skip_cnt+=1
                  continue
               else:
                  logger.error("Processing %s: %s",share_info,repr(x.stderr))
@@ -226,6 +233,6 @@ def migrate2(results,cursor):
            cursor.execute(update_prefix)
 
    print "Processed %d shares - done"%i
-
+   print "Skipped %d shares"%skip_cnt
 main()
 
