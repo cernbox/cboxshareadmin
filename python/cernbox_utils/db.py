@@ -1,179 +1,184 @@
 import cernbox_utils.script
 
+
 class ShareInfo(cernbox_utils.script.Data):
-   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
+    _names = ['id', 'share_type', 'share_with', 'uid_owner', 'uid_initiator', 'parent', 'item_type', 'item_source',
+              'item_target', 'file_source', 'file_target', 'permissions', 'stime', 'accepted', 'expiration',
+              'token', 'mail_send', 'fileid_prefix']
 
+    def _check_consistency(self):
+        pass
 
-   def _check_consistency(self):
-      pass
 
 import MySQLdb
 
 
 # mapping: column_name => index
-#oc_share = dict([(name,i) for i,name in enumerate(['id','share_type','share_with','uid_owner','parent','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send'])])
-
+# oc_share = dict([(name,i) for i,name in enumerate(['id','share_type','share_with','uid_owner','parent','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send'])])
 
 
 class ShareDB:
 
-   def __init__(self):
-      from cernbox_utils.script import config
-      host,port=None,None
+    def __init__(self):
+        from cernbox_utils.script import config
+        host, port = None, None
 
-      if config['dbhost']:
-         host = config['dbhost'].split(':')[0]
-         try:
-            port = int(config['dbhost'].split(':')[1])
-         except IndexError:
-            pass
+        if config['dbhost']:
+            host = config['dbhost'].split(':')[0]
+            try:
+                port = int(config['dbhost'].split(':')[1])
+            except IndexError:
+                pass
 
-      if port:
-         db = MySQLdb.connect(host=host,port=port,user=config['dbuser'],passwd=config['dbpassword'],db=config['dbname'])
-      else:
-         db = MySQLdb.connect(host=host,user=config['dbuser'],passwd=config['dbpassword'],db=config['dbname'])
+        if port:
+            db = MySQLdb.connect(host=host, port=port, user=config['dbuser'], passwd=config['dbpassword'],
+                                 db=config['dbname'])
+        else:
+            db = MySQLdb.connect(host=host, user=config['dbuser'], passwd=config['dbpassword'], db=config['dbname'])
 
-      self.db = db
-      
-   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None,share_id=None):
-      """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
-      """
-      cur = self.db.cursor()
+        self.db = db
 
-      WHERE = []
+    def get_share(self, fid=None, sharee=None, owner=None, share_type=None, share_time_greater_than=None,
+                  item_type=None, share_id=None):
+        """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
+        """
+        cur = self.db.cursor()
 
-      if share_id:
-         WHERE.append('id = "%s"'%share_id)
+        WHERE = []
 
-      if fid:
-         WHERE.append('file_source = "%s"'%fid)
+        if share_id:
+            WHERE.append('id = "%s"' % share_id)
 
-      if sharee:
-         WHERE.append('share_with = "%s"'%sharee)
+        if fid:
+            WHERE.append('file_source = "%s"' % fid)
 
-      if owner:
-         WHERE.append('uid_owner = "%s"'%owner)
+        if sharee:
+            WHERE.append('share_with = "%s"' % sharee)
 
-      if share_time_greater_than:
-         WHERE.append('stime > %s'%share_time_greater_than)
+        if owner:
+            WHERE.append('uid_owner = "%s"' % owner)
 
-      if item_type:
-         WHERE.append('item_type = "%s"'%item_type)
+        if share_time_greater_than:
+            WHERE.append('stime > %s' % share_time_greater_than)
 
-      if share_type:
-         if share_type == "link": 
-            WHERE.append('share_type = 3')
+        if item_type:
+            WHERE.append('item_type = "%s"' % item_type)
 
-         if share_type == "regular": 
-            WHERE.append('share_type != 3')
+        if share_type:
+            if share_type == "link":
+                WHERE.append('share_type = 3')
 
-      if WHERE:
-         WHERE = "WHERE " + (' and '.join(WHERE))
-      else:
-         WHERE = ""
+            if share_type == "regular":
+                WHERE.append('share_type != 3')
 
-      logger = cernbox_utils.script.getLogger('db')
+        if WHERE:
+            WHERE = "WHERE " + (' and '.join(WHERE))
+        else:
+            WHERE = ""
 
-      sql = "SELECT * FROM oc_share "+WHERE
-      logger.debug(sql)
+        logger = cernbox_utils.script.getLogger('db')
 
-      cur.execute(sql)
+        sql = "SELECT * FROM oc_share " + WHERE
+        logger.debug(sql)
 
-      shares = []
-      for row in cur.fetchall():
-         s = ShareInfo()
-         for i,name in enumerate(ShareInfo._names):
-            setattr(s,name,row[i])            
-         shares.append(s)
-         logger.debug("ROW: %s",row)
+        cur.execute(sql)
 
-      return shares
+        shares = []
+        for row in cur.fetchall():
+            s = ShareInfo()
+            for i, name in enumerate(ShareInfo._names):
+                setattr(s, name, row[i])
+            shares.append(s)
+            logger.debug("ROW: %s", row)
 
-#   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
+        return shares
 
-   # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
+    #   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
 
-   def insert_folder_share(self,owner,sharee,fid,file_target,permissions,stime=None,initiator=None):
-      cur = self.db.cursor()
-      logger = cernbox_utils.script.getLogger('db')
+    # TODO: https://its.cern.ch/jira/browse/CERNBOX-236
 
-      if initiator is None:
-         initiator=owner
+    def insert_folder_share(self, owner, sharee, fid, file_target, permissions, stime=None, initiator=None):
+        cur = self.db.cursor()
+        logger = cernbox_utils.script.getLogger('db')
 
-      assert(all(c.isalnum() for c in owner))
-      assert(all(c.isalnum() for c in initiator))
-      assert(all(c.isalnum() or c=='-' for c in sharee)) # egroups may have dash in the name
+        if initiator is None:
+            initiator = owner
 
-      if '-' in sharee:
-         share_type = 1 # group
-      else:
-         share_type = 0 # user
+        assert (all(c.isalnum() for c in owner))
+        assert (all(c.isalnum() for c in initiator))
+        assert (all(c.isalnum() or c == '-' for c in sharee))  # egroups may have dash in the name
 
-      assert(fid>0)
-      assert(permissions>=0)
-      assert(stime is None or stime>0)
-      assert(file_target!="")
+        if '-' in sharee:
+            share_type = 1  # group
+        else:
+            share_type = 0  # user
 
-      def quote(x):
-         return '"'+x+'"'
-      
-      item_source=fid
-      item_target=quote("/%d"%fid)
-      file_source=fid
-      file_target=quote(file_target)
-      
-      if stime is None:
-         import time
-         stime = time.time()
+        assert (fid > 0)
+        assert (permissions >= 0)
+        assert (stime is None or stime > 0)
+        assert (file_target != "")
 
-      from cernbox_utils.script import config
-      if int(config["cernboxng_schema_version"])>0:
-         sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime, fileid_prefix) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d,"oldhome")' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime);
-      else:
-         sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime);
+        def quote(x):
+            return '"' + x + '"'
 
-      logger.debug(sql)
-      cur.execute(sql)
-      self.db.commit()
+        item_source = fid
+        item_target = quote("/%d" % fid)
+        file_source = fid
+        file_target = quote(file_target)
 
+        if stime is None:
+            import time
+            stime = time.time()
 
-   def update_share(self,id,file_target=None):
+        from cernbox_utils.script import config, get_eos_backend
+        if int(config["cernboxng_schema_version"]) > 0:
+            sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime, fileid_prefix) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d,"%s")' % (
+            share_type, quote(sharee), quote(owner), quote(initiator), item_source, item_target, file_source,
+            file_target, permissions, stime, get_eos_backend(owner));
+        else:
+            sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (
+            share_type, quote(sharee), quote(owner), quote(initiator), item_source, item_target, file_source,
+            file_target, permissions, stime);
 
-      cur = self.db.cursor()
-      logger = cernbox_utils.script.getLogger('db')
-      
-      set_cmd = []
+        logger.debug(sql)
+        cur.execute(sql)
+        self.db.commit()
 
-      if file_target is not None:
-         assert("'" not in file_target)
-         set_cmd.append("file_target = '%s'"%file_target)
+    def update_share(self, id, file_target=None):
 
-      if not set_cmd:
-         raise ValueError("nothing to set")
+        cur = self.db.cursor()
+        logger = cernbox_utils.script.getLogger('db')
 
-      set_cmd = ",".join(set_cmd)
+        set_cmd = []
 
-      sql="UPDATE oc_share SET %s WHERE id=%d;"%(set_cmd,id)
+        if file_target is not None:
+            assert ("'" not in file_target)
+            set_cmd.append("file_target = '%s'" % file_target)
 
-      logger.debug(sql)
-      cur.execute(sql)
-      self.db.commit()
+        if not set_cmd:
+            raise ValueError("nothing to set")
 
+        set_cmd = ",".join(set_cmd)
 
+        sql = "UPDATE oc_share SET %s WHERE id=%d;" % (set_cmd, id)
 
-   def delete_share(self,id):
-      """ Delete single share represented by id.
-      """
-      
-      cur = self.db.cursor()
-      
-      logger = cernbox_utils.script.getLogger('db')
+        logger.debug(sql)
+        cur.execute(sql)
+        self.db.commit()
 
-      sql="DELETE FROM oc_share WHERE id=%d;"%int(id)
-      
-      logger.debug(sql) # FIXME: debug?
-      cur.execute(sql)
-      self.db.commit()
+    def delete_share(self, id):
+        """ Delete single share represented by id.
+        """
 
-      # Check referential integrity.      
-      # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
+        cur = self.db.cursor()
+
+        logger = cernbox_utils.script.getLogger('db')
+
+        sql = "DELETE FROM oc_share WHERE id=%d;" % int(id)
+
+        logger.debug(sql)  # FIXME: debug?
+        cur.execute(sql)
+        self.db.commit()
+
+        # Check referential integrity.
+        # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);

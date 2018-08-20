@@ -6,19 +6,21 @@
 # Author: 
 # License: AGPL
 #
-#$Id: $
+# $Id: $
 #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Perform internal setup of the environment.
 # This is a Copy/Paste logic which must stay in THIS file
+
 def standardSetup():
-   import sys, os.path
-   # insert the path to cernafs based on the relative position of this scrip inside the service directory tree
-   exeDir = os.path.abspath(os.path.normpath(os.path.dirname(sys.argv[0])))
-   pythonDir = os.path.join(exeDir, 'python' )
-   sys.path.insert(0, pythonDir)
-   import cernbox_utils.setup
-   cernbox_utils.setup.standardSetup(sys.argv[0]) # execute a setup hook
+    import sys, os.path
+    # insert the path to cernafs based on the relative position of this scrip inside the service directory tree
+    exeDir = os.path.abspath(os.path.normpath(os.path.dirname(sys.argv[0])))
+    pythonDir = os.path.join(exeDir, 'python')
+    sys.path.insert(0, pythonDir)
+    import cernbox_utils.setup
+    cernbox_utils.setup.standardSetup(sys.argv[0])  # execute a setup hook
+
 
 standardSetup()
 del standardSetup
@@ -27,204 +29,224 @@ del standardSetup
 config = None
 logger = None
 
-eos = None # EOS interface instance
-db = None # DB interface instance
+eos = None  # EOS interface instance
+db = None  # DB interface instance
+eos_mgm_url = None
 
 import cernbox_utils
 
 from cernbox_utils.errors import CmdBadRequestError
+from cernbox_utils.script import get_eos_server, get_eos_server_string
 
 import os, os.path, sys
 import subprocess
 
+
 def main():
-   global config,logger
-   import cernbox_utils.script
-   from cernbox_utils.eos import is_special_folder
+    global config, logger
+    import cernbox_utils.script
+    from cernbox_utils.eos import is_special_folder
 
-   parser=cernbox_utils.script.arg_parser(description='Manipulate SWAN projects.')
+    parser = cernbox_utils.script.arg_parser(description='Manipulate SWAN projects.')
 
-   parser.set_defaults(logfile="/var/log/cboxshareadmin.swanproject.log",configfile="/etc/cboxshareadmin.ini")
+    parser.set_defaults(logfile="/var/log/cboxshareadmin.swanproject.log", configfile="/etc/cboxshareadmin.ini")
 
-   subparser = parser.add_subparsers(title='command',dest='cmd')
+    subparser = parser.add_subparsers(title='command', dest='cmd')
 
-   subcmd = subparser.add_parser('list-shared-by', help="list all SWAN projects shared by the user")
-   subcmd.add_argument("user", help="specify owner")
-   subcmd.add_argument("--project", default=None, action='store', help="specify particular project to list")   
+    subcmd = subparser.add_parser('list-shared-by', help="list all SWAN projects shared by the user")
+    subcmd.add_argument("user", help="specify owner")
+    subcmd.add_argument("--project", default=None, action='store', help="specify particular project to list")
 
-   subcmd = subparser.add_parser('list-shared-with', help="list all SWAN projects shared with the user")
-   subcmd.add_argument("user", help="specify sharee")
+    subcmd = subparser.add_parser('list-shared-with', help="list all SWAN projects shared with the user")
+    subcmd.add_argument("user", help="specify sharee")
 
-   subcmd = subparser.add_parser('update-share', help="update share for a SWAN project which will be shared to the specified sharees (and only to them)")
-   subcmd.add_argument("owner", help="share owner")
-   subcmd.add_argument("project", help="project path")
-   subcmd.add_argument("sharees", help="fully qualified names of sharees",nargs='+')
+    subcmd = subparser.add_parser('update-share',
+                                  help="update share for a SWAN project which will be shared to the specified sharees (and only to them)")
+    subcmd.add_argument("owner", help="share owner")
+    subcmd.add_argument("project", help="project path")
+    subcmd.add_argument("sharees", help="fully qualified names of sharees", nargs='+')
 
-   subcmd = subparser.add_parser('delete-share', help="delete all shares for a SWAN project")
-   subcmd.add_argument("owner", help="share owner")
-   subcmd.add_argument("project", help="project path")
+    subcmd = subparser.add_parser('delete-share', help="delete all shares for a SWAN project")
+    subcmd.add_argument("owner", help="share owner")
+    subcmd.add_argument("project", help="project path")
 
-   subcmd = subparser.add_parser('clone-share', help="clone <shared_project> shared by <sharer> (with <receiver>) as project <cloned_project> to be owned by <receiver>")
-   subcmd.add_argument("sharer", help="name of the sharer")
-   subcmd.add_argument("shared_project", help="project to clone")
-   subcmd.add_argument("receiver", help="name of the user to receive the cloned project")
-   subcmd.add_argument("cloned_project", help="name of the project at new destination")
+    subcmd = subparser.add_parser('clone-share',
+                                  help="clone <shared_project> shared by <sharer> (with <receiver>) as project <cloned_project> to be owned by <receiver>")
+    subcmd.add_argument("sharer", help="name of the sharer")
+    subcmd.add_argument("shared_project", help="project to clone")
+    subcmd.add_argument("receiver", help="name of the user to receive the cloned project")
+    subcmd.add_argument("cloned_project", help="name of the project at new destination")
 
-   args = parser.parse_args()
+    args = parser.parse_args()
 
-   # this script does json output by default
-   args.json = True 
+    # this script does json output by default
+    args.json = True
 
-   config = cernbox_utils.script.configure(args.configfile)
+    config = cernbox_utils.script.configure(args.configfile)
 
-   logger = cernbox_utils.script.getLogger(level=args.loglevel,filename=args.logfile)
+    logger = cernbox_utils.script.getLogger(level=args.loglevel, filename=args.logfile)
 
-   logger.info("Running command: %s",str(sys.argv))
-   logger.info("Using  DB: %s",config['dbhost'])
-   logger.info("Using EOS: %s",config['eos_mgm_url'])
+    if 'owner' in args:
+        this_user = args.owner
+    elif 'sharer' in args:
+        this_user = args.sharer
+    else:
+        this_user = args.user
+    global eos_mgm_url
+    eos_mgm_url = get_eos_server(this_user)
 
-   global eos,db
-   import cernbox_utils.db, cernbox_utils.eos
-   db = cernbox_utils.db.ShareDB()
-   eos = cernbox_utils.eos.EOS(config['eos_mgm_url'])
-   eos.role=(0,0)
+    logger.info("Running command: %s", str(sys.argv))
+    logger.info("Using  DB: %s", config['dbhost'])
+    logger.info("Using EOS: %s", eos_mgm_url)
 
-   def print_json(obj):
-       if args.json:
-           import json
-           if obj is not None:
-               print json.dumps(obj,ensure_ascii=False) # allows unicode characters from eos output
+    global eos, db
+    import cernbox_utils.db, cernbox_utils.eos
+    db = cernbox_utils.db.ShareDB()
 
-   def print_json_error(msg,statuscode):
-       print_json({"error" : str(msg), "statuscode" : int(statuscode)})
+    eos = cernbox_utils.eos.EOS(eos_mgm_url)
+    eos.role = (0, 0)
 
-   f = globals()['cmd_'+args.cmd.replace('-','_')]
+    def print_json(obj):
+        if args.json:
+            import json
+            if obj is not None:
+                print json.dumps(obj, ensure_ascii=False)  # allows unicode characters from eos output
 
-   try:
-       r = f(args)
-       print_json(r)
-   except CmdBadRequestError,x:
-       logger.error("CmdBadRequestError: %s",x.msg)
-       print_json_error(x.msg,400)
-       sys.exit(4)
-   except Exception,x:
-       import traceback
-       logger.critical("%s. Unhandled exception: %s"%(x,traceback.format_exc()))
-       print_json_error("Unhandled exception.",400)
-       raise
+    def print_json_error(msg, statuscode):
+        print_json({"error": str(msg), "statuscode": int(statuscode)})
+
+    f = globals()['cmd_' + args.cmd.replace('-', '_')]
+
+    try:
+        r = f(args)
+        print_json(r)
+    except CmdBadRequestError, x:
+        logger.error("CmdBadRequestError: %s", x.msg)
+        print_json_error(x.msg, 400)
+        sys.exit(4)
+    except Exception, x:
+        import traceback
+        logger.critical("%s. Unhandled exception: %s" % (x, traceback.format_exc()))
+        print_json_error("Unhandled exception.", 400)
+        raise
 
 
 def cmd_update_share(args):
-   parse_swan_project(args.project)
-   return _cmd_swan_update_share(args.project, args.owner, args.sharees)
+    parse_swan_project(args.project)
+    return _cmd_swan_update_share(args.project, args.owner, args.sharees)
+
 
 def cmd_delete_share(args):
-   parse_swan_project(args.project)
-   return _cmd_swan_update_share(args.project, args.owner, [])
+    parse_swan_project(args.project)
+    return _cmd_swan_update_share(args.project, args.owner, [])
+
 
 def _cmd_swan_update_share(swan_project, owner, sharees):
-   import cernbox_utils.sharing
+    import cernbox_utils.sharing
 
-   for sharee in sharees:
-       try:
-           cernbox_utils.sharing.check_can_share(owner,sharee)
-       except ValueError,x:
-           logger.error(x)
-           raise CmdBadRequestError(str(x))
+    for sharee in sharees:
+        try:
+            cernbox_utils.sharing.check_can_share(owner, sharee)
+        except ValueError, x:
+            logger.error(x)
+            raise CmdBadRequestError(str(x))
 
-   f = get_swan_project_fileinfo(owner, swan_project)
+    f = get_swan_project_fileinfo(owner, swan_project)
 
-   if not f:
-       raise CmdBadRequestError("Project not found %s %s"%(owner,swan_project))
-       # BAD REQUEST
+    if not f:
+        raise CmdBadRequestError("Project not found %s %s" % (owner, swan_project))
+        # BAD REQUEST
 
-   shares=db.get_share(owner=owner,fid=f.ino)
+    shares = db.get_share(owner=owner, fid=f.ino)
 
-   sharees_requested = [ cernbox_utils.sharing.split_sharee(x)[1] for x in sharees ]
+    sharees_requested = [cernbox_utils.sharing.split_sharee(x)[1] for x in sharees]
 
-   # PENDING: this should be a DB TRANSACTION!
+    # PENDING: this should be a DB TRANSACTION!
 
-   db_update_cnt = 0
+    db_update_cnt = 0
 
-   for s in shares:
-      if s.share_with not in sharees_requested:
-         db.delete_share(s.id)
-         db_update_cnt += 1
+    for s in shares:
+        if s.share_with not in sharees_requested:
+            db.delete_share(s.id)
+            db_update_cnt += 1
 
-   sharees_existing = [ s.share_with for s in shares ]
+    sharees_existing = [s.share_with for s in shares]
 
-   for sharee in sharees:
-      if cernbox_utils.sharing.split_sharee(sharee)[1] not in sharees_existing:
-         cernbox_utils.sharing.add_share(owner,f.file,sharee,"r",eos,db,config,storage_acl_update=False)
-         db_update_cnt += 1
+    for sharee in sharees:
+        if cernbox_utils.sharing.split_sharee(sharee)[1] not in sharees_existing:
+            cernbox_utils.sharing.add_share(owner, f.file, sharee, "r", eos, db, config, storage_acl_update=False)
+            db_update_cnt += 1
 
-   try:
-      logger.info("Updated %d share entries",db_update_cnt)
+    try:
+        logger.info("Updated %d share entries", db_update_cnt)
 
-      if db_update_cnt:
-         # modify storage ACL      
-         cernbox_utils.sharing.update_acls(f.ino,eos,db,owner,dryrun=False)
+        if db_update_cnt:
+            # modify storage ACL
+            cernbox_utils.sharing.update_acls(f.ino, eos, db, owner, dryrun=False)
 
-   except Exception,x:
-      logger.critical("Something went pretty wrong... %s %s",hash(x),x)
-      #rollback the insert?
-      raise
+    except Exception, x:
+        logger.critical("Something went pretty wrong... %s %s", hash(x), x)
+        # rollback the insert?
+        raise
 
-def cmd_list_shared_with(args):    
-    return _cmd_list_shared(args,"sharee",None)
+
+def cmd_list_shared_with(args):
+    return _cmd_list_shared(args, "sharee", None)
+
 
 def cmd_list_shared_by(args):
-
     if args.project:
         parse_swan_project(args.project)
-        f = get_swan_project_fileinfo(args.user,args.project)
+        f = get_swan_project_fileinfo(args.user, args.project)
         if not f:
             raise CmdBadRequestError("Source project not found")
-        inode=f.ino
+        inode = f.ino
     else:
         inode = None
-    
-    return _cmd_list_shared(args,"owner",inode)
 
-def _cmd_list_shared(args,role,inode):
-   import cernbox_utils.sharing
+    return _cmd_list_shared(args, "owner", inode)
 
-   groups = []
-   # TODO: resolve groups via cboxgroupd
-   # curl -i localhost:2002/api/v1/membership/usergroups/moscicki -H "Authorization: Bearer abc"
 
-   retbuf = cernbox_utils.sharing.list_shares(args.user,role,groups,inode,"regular",False,False,db,eos)
+def _cmd_list_shared(args, role, inode):
+    import cernbox_utils.sharing
 
-   retobj = []
-   
-   for x in retbuf:
+    groups = []
+    # TODO: resolve groups via cboxgroupd
+    # curl -i localhost:2002/api/v1/membership/usergroups/moscicki -H "Authorization: Bearer abc"
 
-      swanprj = path2swanprj(x['path'])
+    retbuf = cernbox_utils.sharing.list_shares(args.user, role, groups, inode, "regular", False, False, db, eos)
 
-      if swanprj:
-         x['project']=swanprj
-         retobj.append(x)
+    retobj = []
 
-   return {'shares':retobj}
+    for x in retbuf:
+
+        swanprj = path2swanprj(x['path'])
+
+        if swanprj:
+            x['project'] = swanprj
+            retobj.append(x)
+
+    return {'shares': retobj}
 
 
 def cmd_clone_share(args):
-    
     import cernbox_utils.sharing as sharing
 
-    fsrc = get_swan_project_fileinfo(args.sharer,args.shared_project)
+    fsrc = get_swan_project_fileinfo(args.sharer, args.shared_project)
 
     if not fsrc:
         raise CmdBadRequestError("Source project not found")
 
-    s = db.get_share(fid=fsrc.ino,sharee=args.receiver,owner=args.sharer,share_type="regular")
+    s = db.get_share(fid=fsrc.ino, sharee=args.receiver, owner=args.sharer, share_type="regular")
 
     if not s:
         raise CmdBadRequestError("Project not shared")
 
     # so far so good, share exists and target also exists...
 
-    fdest = get_swan_project_fileinfo(args.receiver,args.cloned_project)
+    receiver_backend = get_eos_server(args.receiver)
+
+    fdest = get_swan_project_fileinfo(args.receiver, args.cloned_project, backend=receiver_backend)
 
     # destination exists
     if fdest:
@@ -233,88 +255,100 @@ def cmd_clone_share(args):
     # we copy using the role of the receiver
     logger.debug("getting gid")
     import pwd
-    p = pwd.getpwnam(args.receiver) # will end up with KeyError if user not resolved
-    role = (p.pw_uid,p.pw_gid)
-    logger.debug("got gid %s"%str(role))
+    p = pwd.getpwnam(args.receiver)  # will end up with KeyError if user not resolved
+    role = (p.pw_uid, p.pw_gid)
+    logger.debug("got gid %s" % str(role))
 
     # eos cp -r will preserve the directory name at the destination
     # copy to a temporary area and then rename into new destination
 
-    import uuid
+    import uuid, tempfile, shutil
 
-    tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
+    local_tmp = tempfile.mkdtemp()
+    tmppath = swanprj2path(args.receiver, "SWAN_projects/.sys.dav.hide#." + str(uuid.uuid1()))
 
-    r = eos._runcmd(eos._eoscmd("mkdir","-p",tmppath))
-    r = eos._runcmd(eos._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',tmppath+'/'))
-    r = eos._runcmd(eos._eoscmd('file','rename', os.path.join(tmppath,os.path.basename(fsrc.file)),swanprj2path(args.receiver,args.cloned_project)))
-    r = eos._runcmd(eos._eoscmd('rmdir',tmppath))
+    r = eos._runcmd(eos._eoscmd("mkdir", "-p", tmppath, backend=receiver_backend))
+    # to copy between eos instances, copy locally and then to the target
+    # !! the host needs to be allowed in eos in order for this to work !!
+    r = eos._runcmd(eos._eoscmd("cp", "-r", os.path.normpath(fsrc.file) + '/', local_tmp + '/', backend=None), backend=eos_mgm_url)
+    r = eos._runcmd(eos._eoscmd("cp", "-r", local_tmp + '/', tmppath + '/', backend=None), backend=receiver_backend)
+    r = eos._runcmd(eos._eoscmd('file', 'rename', os.path.join(tmppath, local_tmp.replace("/tmp/tmp", ""), os.path.basename(fsrc.file)),
+                                swanprj2path(args.receiver, args.cloned_project), backend=receiver_backend))
+    r = eos._runcmd(eos._eoscmd('rmdir', os.path.join(tmppath, local_tmp.replace("/tmp/tmp", "")), backend=receiver_backend))
+    r = eos._runcmd(eos._eoscmd('rmdir', tmppath, backend=receiver_backend))
+    shutil.rmtree(local_tmp)
+
 
 # helpers
 
-def get_swan_project_fileinfo(owner,swan_project):
-      """ Return EOS file object for a SWAN project or None if not found.
+def get_swan_project_fileinfo(owner, swan_project, backend=None):
+    """ Return EOS file object for a SWAN project or None if not found.
 
-      Raise ValueError() if project specified in a wrong way or not sharable.
-      """
+    Raise ValueError() if project specified in a wrong way or not sharable.
+    """
 
-      p = swanprj2path(owner,swan_project)
+    p = swanprj2path(owner, swan_project)
 
-      if not p:
-         raise CmdBadRequestError("Project name misformatted: %s"%swan_project)
-         # TODO: FIX RC => 400 Bad Request
+    if not p:
+        raise CmdBadRequestError("Project name misformatted: %s" % swan_project)
+        # TODO: FIX RC => 400 Bad Request
 
-      import cernbox_utils.sharing as sharing
-      return sharing.check_share_target(p,owner,eos,config)
+    import cernbox_utils.sharing as sharing
+    return sharing.check_share_target(p, owner, eos, config, backend)
+
 
 def parse_swan_project(swanprj):
-   if not is_swanprj(swanprj):
-      raise CmdBadRequestError("ERROR: SWAN project name wrongly specified '%s'"%swanprj)
+    if not is_swanprj(swanprj):
+        raise CmdBadRequestError("ERROR: SWAN project name wrongly specified '%s'" % swanprj)
+
 
 # convert SWAN project name to EOS path and vice-versa
 
 def is_swanprj(pname):
-   p = os.path.split(os.path.normpath(pname))
-   return len(p)==2 and p[0]=='SWAN_projects'
+    p = os.path.split(os.path.normpath(pname))
+    return len(p) == 2 and p[0] == 'SWAN_projects'
 
-def swanprj2path(owner,pname):
-   if not is_swanprj(pname):
-      return None
-   else:
-      return os.path.join(config['eos_prefix'],owner[0],owner,pname)
+
+def swanprj2path(owner, pname):
+    if not is_swanprj(pname):
+        return None
+    else:
+        return os.path.join(config['eos_prefix'], owner[0], owner, pname)
+
 
 def path2swanprj(path):
-   if not path.startswith(config['eos_prefix']):
-      return None
+    if not path.startswith(config['eos_prefix']):
+        return None
 
-   p = os.path.normpath(path[len(config['eos_prefix']):])
+    p = os.path.normpath(path[len(config['eos_prefix']):])
 
-   p = "/".join(p.split('/')[2:])
+    p = "/".join(p.split('/')[2:])
 
-   if is_swanprj(p):
-      return p
-   else:
-      return None
+    if is_swanprj(p):
+        return p
+    else:
+        return None
+
 
 def unit_test_swanprj():
+    print "--- UNIT TEST SWANPRJ: BEGIN"
 
-   print "--- UNIT TEST SWANPRJ: BEGIN"
+    assert (os.path.normpath(config['eos_prefix']) == '/eos/scratch/user')
 
-   assert(os.path.normpath(config['eos_prefix']) == '/eos/scratch/user')
+    print is_swanprj("SWAN_projects/X")  # => True
+    print is_swanprj("SWAN_projects/X/Y")  # => False
+    print is_swanprj("SWAN_projects/")  # => False
+    print is_swanprj("SWAN_projects")  # => False
+    print is_swanprj("X")  # => False
+    print is_swanprj("")  # => False
 
-   print is_swanprj("SWAN_projects/X") # => True
-   print is_swanprj("SWAN_projects/X/Y") # => False
-   print is_swanprj("SWAN_projects/") # => False
-   print is_swanprj("SWAN_projects") # => False
-   print is_swanprj("X") # => False
-   print is_swanprj("") # => False
+    print swanprj2path('moscicki', "X")  # => None
+    print swanprj2path('moscicki', "SWAN_projects/X")  # => /eos/scratch/user/m/moscicki/SWAN_projects/X
 
-   print swanprj2path('moscicki',"X") # => None
-   print swanprj2path('moscicki',"SWAN_projects/X") # => /eos/scratch/user/m/moscicki/SWAN_projects/X
+    print path2swanprj("/eos/scratch/user/m/moscicki/SWAN_projects/X")  # => SWAN_projects/X
 
-   print path2swanprj("/eos/scratch/user/m/moscicki/SWAN_projects/X") # => SWAN_projects/X
-
-   print "--- UNIT TEST SWANPRJ: END"
+    print "--- UNIT TEST SWANPRJ: END"
 
 
 if __name__ == "__main__":
-   sys.exit(main())
+    sys.exit(main())
