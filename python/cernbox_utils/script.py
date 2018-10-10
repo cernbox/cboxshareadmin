@@ -1,3 +1,4 @@
+from .errors import CmdBadRequestError
 
 parser = None
 
@@ -150,3 +151,44 @@ class Data(object):
       s += ",".join(attrs)
       s += ")"
       return s
+
+
+def get_eos_backend(user):
+    import redis
+    global config
+
+    logger.debug('getting eos backend for user %s', user)
+
+    r = redis.StrictRedis(host=config.get('redis_host'), port=config.get('redis_port'), db=0,
+                          password=config.get('redis_password'))
+
+    letter = user[0]
+    status = r.get('/eos/user/%s/%s' % (letter, user))
+
+    logger.debug('eos backend status: %s', status)
+
+    if status == 'migrated':
+        return 'eoshome-%s' % letter
+
+    elif status == 'not-migrated':
+        return 'oldhome'
+
+    elif status == 'ongoing-migration':
+        raise CmdBadRequestError("User ongoing migration")
+
+    else:
+        default = r.get('default-user-not-found')
+
+        if default == 'new-proxy':
+            return 'eoshome-%s' % letter
+
+    return 'oldhome'
+
+
+def get_eos_server(user):
+    backend = get_eos_backend(user)
+    return get_eos_server_string(backend)
+
+
+def get_eos_server_string(backend):
+    return 'root://%s.cern.ch' % ('eosuser-internal' if backend == 'oldhome' else backend)

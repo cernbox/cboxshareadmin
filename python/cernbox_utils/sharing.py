@@ -1,6 +1,7 @@
 import cernbox_utils
 import subprocess
 import os
+from .script import get_eos_server_string
 
 # remove duplicates, preserving order
 def squash(seq):
@@ -80,7 +81,7 @@ def check_can_share(owner,sharee):
         raise ValueError("cannot share with self '%s'"%owner)
 
 # TODO: rename to get_
-def check_share_target(path,owner,eos,config):
+def check_share_target(path,owner,eos,config,backend=None):
       """ Return EOS file object for path.
       If path does not exist return None.
       If path is not sharable raise ValueError() 
@@ -93,7 +94,7 @@ def check_share_target(path,owner,eos,config):
          raise ValueError("path '%s' should start with '%s'"% (path,config['eos_prefix']))
 
       try:
-         f = eos.fileinfo(path)
+         f = eos.fileinfo(path,backend=backend)
       except subprocess.CalledProcessError,x:
          if 'error: cannot stat' in x.stderr:
             return None
@@ -283,7 +284,7 @@ def compute_acls(fid,eos,db,owner=None):
     return node_status
 
 class ShareNode(cernbox_utils.script.Data):
-   _names = ['inode','owner','shares']
+   _names = ['inode','owner','shares','fileid_prefix']
 
 def collapse_into_nodes(shares):
     """
@@ -294,7 +295,7 @@ def collapse_into_nodes(shares):
 
     for s in shares:
 
-        nodes.setdefault(s.item_source,ShareNode(inode=s.item_source,owner=s.uid_owner,shares=set()))
+        nodes.setdefault(s.item_source,ShareNode(inode=s.item_source,owner=s.uid_owner,shares=set(),fileid_prefix=s.fileid_prefix))
 
         nodes[s.item_source].shares.add(s)
 
@@ -360,7 +361,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
        nodes = collapse_into_nodes(shares)
        for target_id in nodes:
           try:
-             f = eos.fileinfo("inode:"+target_id)
+             f = eos.fileinfo("inode:"+target_id, backend=get_eos_server_string(nodes[target_id].fileid_prefix))
              target_path,target_size=f.file,f.treesize
           except  subprocess.CalledProcessError,x:
              if x.returncode == 2:
