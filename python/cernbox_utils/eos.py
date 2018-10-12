@@ -47,6 +47,8 @@ class EOS:
 
         try:
            backend = kwds['backend']
+           if backend is None:
+              backend = self.mgmurl
         except KeyError:
            backend = self.mgmurl
 
@@ -56,8 +58,8 @@ class EOS:
            uid,gid=role
            eos = eos + ["-r", str(uid),str(gid)] # running eos command with the role of the user
 
-        if backend:
-           eos = eos + [backend]
+
+        eos = eos + [backend]
 
         #TODO: find /usr/bin/eos by PATH?
 
