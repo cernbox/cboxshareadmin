@@ -28,6 +28,7 @@ config = None
 logger = None
 
 eos = None # EOS interface instance
+eos_no_backend = None # EOS interface instance without backend (it will be passed as ENV)
 db = None # DB interface instance
 eos_mgm_url = None
 
@@ -94,11 +95,13 @@ def main():
    logger.info("Using  DB: %s",config['dbhost'])
    logger.info("Using EOS: %s", eos_mgm_url)
 
-   global eos,db
+   global eos,eos_no_backend,db
    import cernbox_utils.db, cernbox_utils.eos
    db = cernbox_utils.db.ShareDB()
    eos = cernbox_utils.eos.EOS(eos_mgm_url)
    eos.role=(0,0)
+   eos_no_backend = cernbox_utils.eos.EOS()
+   eos_no_backend.role=(0,0)
 
    def print_json(obj):
        if args.json:
@@ -143,7 +146,7 @@ def _cmd_swan_update_share(swan_project, owner, sharees):
            logger.error(x)
            raise CmdBadRequestError(str(x))
 
-   f = get_swan_project_fileinfo(owner, swan_project)
+   f = get_swan_project_fileinfo(eos,owner, swan_project)
 
    if not f:
        raise CmdBadRequestError("Project not found %s %s"%(owner,swan_project))
@@ -188,7 +191,7 @@ def cmd_list_shared_by(args):
 
     if args.project:
         parse_swan_project(args.project)
-        f = get_swan_project_fileinfo(args.user,args.project)
+        f = get_swan_project_fileinfo(eos,args.user,args.project)
         if not f:
             raise CmdBadRequestError("Source project not found")
         inode=f.ino
@@ -223,7 +226,7 @@ def cmd_clone_share(args):
     
     import cernbox_utils.sharing as sharing
 
-    fsrc = get_swan_project_fileinfo(args.sharer,args.shared_project)
+    fsrc = get_swan_project_fileinfo(eos,args.sharer,args.shared_project)
 
     if not fsrc:
         raise CmdBadRequestError("Source project not found")
@@ -236,7 +239,9 @@ def cmd_clone_share(args):
     # so far so good, share exists and target also exists...
 
     receiver_backend = get_eos_server(args.receiver)
-    fdest = get_swan_project_fileinfo(args.receiver,args.cloned_project,backend=receiver_backend)
+    eos_receiver = cernbox_utils.eos.EOS(receiver_backend)
+    eos_receiver.role=(0,0)
+    fdest = get_swan_project_fileinfo(eos_receiver, args.receiver,args.cloned_project)
 
     # destination exists
     if fdest:
@@ -257,20 +262,20 @@ def cmd_clone_share(args):
     local_tmp = tempfile.mkdtemp()
     tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
 
-    r = eos._runcmd(eos._eoscmd("mkdir","-p",tmppath,backend=receiver_backend))
+    r = eos._runcmd(eos_receiver._eoscmd("mkdir","-p",tmppath))
     # to copy between eos instances, copy locally and then to the target
     # !! the host needs to be allowed in eos in order for this to work !!
-    r = eos._runcmd(eos._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/',backend=None),backend=eos_mgm_url)
-    r = eos._runcmd(eos._eoscmd("cp","-r",local_tmp+'/',tmppath+'/',backend=None),backend=receiver_backend)
-    r = eos._runcmd(eos._eoscmd('file','rename',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""),os.path.basename(fsrc.file)),
-                                swanprj2path(args.receiver,args.cloned_project),backend=receiver_backend))
-    r = eos._runcmd(eos._eoscmd('rmdir',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", "")),backend=receiver_backend))
-    r = eos._runcmd(eos._eoscmd('rmdir',tmppath,backend=receiver_backend))
+    r = eos._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/'))
+    r = eos_receiver._runcmd(eos_no_backend._eoscmd("cp","-r",local_tmp+'/',tmppath+'/'))
+    r = eos._runcmd(eos_receiver._eoscmd('file','rename',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""),os.path.basename(fsrc.file)),
+                                swanprj2path(args.receiver,args.cloned_project)))
+    r = eos._runcmd(eos_receiver._eoscmd('rmdir',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""))))
+    r = eos._runcmd(eos_receiver._eoscmd('rmdir',tmppath))
     shutil.rmtree(local_tmp)
 
 # helpers
 
-def get_swan_project_fileinfo(owner,swan_project,backend=None):
+def get_swan_project_fileinfo(self_eos,owner,swan_project):
       """ Return EOS file object for a SWAN project or None if not found.
 
       Raise ValueError() if project specified in a wrong way or not sharable.
@@ -283,7 +288,7 @@ def get_swan_project_fileinfo(owner,swan_project,backend=None):
          # TODO: FIX RC => 400 Bad Request
 
       import cernbox_utils.sharing as sharing
-      return sharing.check_share_target(p,owner,eos,config,backend)
+      return sharing.check_share_target(p,owner,self_eos,config)
 
 def parse_swan_project(swanprj):
    if not is_swanprj(swanprj):

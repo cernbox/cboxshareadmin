@@ -81,7 +81,7 @@ def check_can_share(owner,sharee):
         raise ValueError("cannot share with self '%s'"%owner)
 
 # TODO: rename to get_
-def check_share_target(path,owner,eos,config,backend=None):
+def check_share_target(path,owner,eos,config):
       """ Return EOS file object for path.
       If path does not exist return None.
       If path is not sharable raise ValueError() 
@@ -94,7 +94,7 @@ def check_share_target(path,owner,eos,config,backend=None):
          raise ValueError("path '%s' should start with '%s'"% (path,config['eos_prefix']))
 
       try:
-         f = eos.fileinfo(path,backend=backend)
+         f = eos.fileinfo(path)
       except subprocess.CalledProcessError,x:
          if 'error: cannot stat' in x.stderr:
             return None
@@ -361,7 +361,9 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
        nodes = collapse_into_nodes(shares)
        for target_id in nodes:
           try:
-             f = eos.fileinfo("inode:"+target_id, backend=get_eos_server_string(nodes[target_id].fileid_prefix))
+             eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(nodes[target_id].fileid_prefix))
+             eos_to_check.role=(0,0)
+             f = eos_to_check.fileinfo("inode:"+target_id)
              target_path,target_size=f.file,f.treesize
           except  subprocess.CalledProcessError,x:
              if x.returncode == 2:
