@@ -45,21 +45,41 @@ class EOS:
         except KeyError:
            role=self.role
 
+        try:
+           backend = kwds['backend']
+        except KeyError:
+           backend = self.mgmurl
+
+        eos = ["eos"]
+
         if role:
-            uid,gid=role
-            eos = ["eos","-r", str(uid),str(gid)] # running eos command with the role of the user
-        else:
-            eos = ["eos"]
+           uid,gid=role
+           eos = eos + ["-r", str(uid),str(gid)] # running eos command with the role of the user
+
+        if backend:
+           eos = eos + [backend]
 
         #TODO: find /usr/bin/eos by PATH?
 
-        cmd = eos + [self.mgmurl] + [ x for x in args if x ] # filter out None or "" arguments
+        cmd = eos + [x for x in args if x]  # filter out None or "" arguments
         return cmd
 
     def _runcmd(self,cmd,**opts):
        cmd_opts=self.cmd_opts.copy()
        cmd_opts.update(opts)
-       return cernbox_utils.script.runcmd(cmd,env=self.env,shell=False,**cmd_opts)
+
+       try:
+           backend = opts['backend']
+       except KeyError:
+           backend = None
+
+       this_env = self.env
+
+       if backend:
+           this_env['EOS_MGM_URL'] = backend
+           del cmd_opts['backend']
+
+       return cernbox_utils.script.runcmd(cmd,env=this_env,shell=False,**cmd_opts)
 
     def ls(self,path,opts,role=None):
 
@@ -67,11 +87,11 @@ class EOS:
 
         return self._runcmd(eos,echo=False)[1].splitlines()
 
-    def fileinfo(self,spec,role=None):
+    def fileinfo(self,spec,role=None,backend=None):
         """ spec may be <path> or fid:<fid-dec> ...
         """
 
-        eos = self._eoscmd('file info',spec,'-m',role=role)
+        eos = self._eoscmd('file info',spec,'-m',role=role,backend=backend)
                 
         return _parse_mline(self._runcmd(eos,echo=False)[1])
     

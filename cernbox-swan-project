@@ -29,10 +29,12 @@ logger = None
 
 eos = None # EOS interface instance
 db = None # DB interface instance
+eos_mgm_url = None
 
 import cernbox_utils
 
 from cernbox_utils.errors import CmdBadRequestError
+from cernbox_utils.script import get_eos_server, get_eos_server_string
 
 import os, os.path, sys
 import subprocess
@@ -79,14 +81,23 @@ def main():
 
    logger = cernbox_utils.script.getLogger(level=args.loglevel,filename=args.logfile)
 
+   if 'owner' in args:
+       this_user = args.owner
+   elif 'sharer' in args:
+       this_user = args.sharer
+   else:
+       this_user = args.user
+   global eos_mgm_url
+   eos_mgm_url = get_eos_server(this_user)
+
    logger.info("Running command: %s",str(sys.argv))
    logger.info("Using  DB: %s",config['dbhost'])
-   logger.info("Using EOS: %s",config['eos_mgm_url'])
+   logger.info("Using EOS: %s", eos_mgm_url)
 
    global eos,db
    import cernbox_utils.db, cernbox_utils.eos
    db = cernbox_utils.db.ShareDB()
-   eos = cernbox_utils.eos.EOS(config['eos_mgm_url'])
+   eos = cernbox_utils.eos.EOS(eos_mgm_url)
    eos.role=(0,0)
 
    def print_json(obj):
@@ -224,7 +235,8 @@ def cmd_clone_share(args):
 
     # so far so good, share exists and target also exists...
 
-    fdest = get_swan_project_fileinfo(args.receiver,args.cloned_project)
+    receiver_backend = get_eos_server(args.receiver)
+    fdest = get_swan_project_fileinfo(args.receiver,args.cloned_project,backend=receiver_backend)
 
     # destination exists
     if fdest:
@@ -240,18 +252,25 @@ def cmd_clone_share(args):
     # eos cp -r will preserve the directory name at the destination
     # copy to a temporary area and then rename into new destination
 
-    import uuid
+    import uuid, tempfile, shutil
 
+    local_tmp = tempfile.mkdtemp()
     tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
 
-    r = eos._runcmd(eos._eoscmd("mkdir","-p",tmppath))
-    r = eos._runcmd(eos._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',tmppath+'/'))
-    r = eos._runcmd(eos._eoscmd('file','rename', os.path.join(tmppath,os.path.basename(fsrc.file)),swanprj2path(args.receiver,args.cloned_project)))
-    r = eos._runcmd(eos._eoscmd('rmdir',tmppath))
+    r = eos._runcmd(eos._eoscmd("mkdir","-p",tmppath,backend=receiver_backend))
+    # to copy between eos instances, copy locally and then to the target
+    # !! the host needs to be allowed in eos in order for this to work !!
+    r = eos._runcmd(eos._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/',backend=None),backend=eos_mgm_url)
+    r = eos._runcmd(eos._eoscmd("cp","-r",local_tmp+'/',tmppath+'/',backend=None),backend=receiver_backend)
+    r = eos._runcmd(eos._eoscmd('file','rename',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""),os.path.basename(fsrc.file)),
+                                swanprj2path(args.receiver,args.cloned_project),backend=receiver_backend))
+    r = eos._runcmd(eos._eoscmd('rmdir',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", "")),backend=receiver_backend))
+    r = eos._runcmd(eos._eoscmd('rmdir',tmppath,backend=receiver_backend))
+    shutil.rmtree(local_tmp)
 
 # helpers
 
-def get_swan_project_fileinfo(owner,swan_project):
+def get_swan_project_fileinfo(owner,swan_project,backend=None):
       """ Return EOS file object for a SWAN project or None if not found.
 
       Raise ValueError() if project specified in a wrong way or not sharable.
@@ -264,7 +283,7 @@ def get_swan_project_fileinfo(owner,swan_project):
          # TODO: FIX RC => 400 Bad Request
 
       import cernbox_utils.sharing as sharing
-      return sharing.check_share_target(p,owner,eos,config)
+      return sharing.check_share_target(p,owner,eos,config,backend)
 
 def parse_swan_project(swanprj):
    if not is_swanprj(swanprj):

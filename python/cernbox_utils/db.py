@@ -1,7 +1,7 @@
 import cernbox_utils.script
 
 class ShareInfo(cernbox_utils.script.Data):
-   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
+   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send','fileid_prefix']
 
 
    def _check_consistency(self):
@@ -126,9 +126,9 @@ class ShareDB:
          import time
          stime = time.time()
 
-      from cernbox_utils.script import config
+      from cernbox_utils.script import config, get_eos_backend
       if int(config["cernboxng_schema_version"])>0:
-         sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime, fileid_prefix) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d,"oldhome")' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime);
+         sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime, fileid_prefix) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d,"%s")' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime, get_eos_backend(owner));
       else:
          sql = 'INSERT INTO oc_share(share_type, share_with, uid_owner, uid_initiator, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (%d,%s,%s,%s,NULL,"folder",%d,%s,%d,%s,%d,%d)' % (share_type,quote(sharee),quote(owner),quote(initiator),item_source,item_target,file_source,file_target,permissions,stime);
 
