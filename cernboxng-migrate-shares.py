@@ -79,7 +79,7 @@ def main():
    admin_role[0] = config.get('eos_admin_uid',0)
    admin_role[1] = config.get('eos_admin_gid',0)
 
-   eos_user = cernbox_utils.eos.EOS('root://eosuser-slave.cern.ch')
+   eos_user = cernbox_utils.eos.EOS(config['eos_slave_mgm_url'])
    eos_user.role=admin_role
    eos_user.cmd_opts={'log_warning':False} # don't warn if file not found
    eos_user.env=None
@@ -199,9 +199,15 @@ def migrate2(results,cursor):
 
            logger.debug("Processing share:" + str(share_info))
 
+           if fileid_prefix and fileid_prefix.startswith('eoshome'):
+              skip_cnt+=1
+              logger.warning("Shared already migrated to %s",fileid_prefix)
+              continue
+
            try:
               f1 = eos_user.fileinfo("inode:"+str(file_source))
            except subprocess.CalledProcessError,x:
+              skip_cnt+=1
               if 'No such file or directory' in x.stderr:
                  continue # skip orphans 
               else:
