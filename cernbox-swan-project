@@ -259,7 +259,8 @@ def cmd_clone_share(args):
 
     import uuid, tempfile, shutil
 
-    local_tmp = tempfile.mkdtemp()
+    tmp_base = ['cp_tmp_dir'] if 'cp_tmp_dir' in config else None
+    local_tmp = tempfile.mkdtemp(dir=tmp_base)
     tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
 
     try:
