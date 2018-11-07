@@ -262,16 +262,16 @@ def cmd_clone_share(args):
     local_tmp = tempfile.mkdtemp()
     tmppath = swanprj2path(args.receiver,"SWAN_projects/.sys.dav.hide#."+str(uuid.uuid1()))
 
-    r = eos._runcmd(eos_receiver._eoscmd("mkdir","-p",tmppath))
-    # to copy between eos instances, copy locally and then to the target
-    # !! the host needs to be allowed in eos in order for this to work !!
-    r = eos._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/'))
-    r = eos_receiver._runcmd(eos_no_backend._eoscmd("cp","-r",local_tmp+'/',tmppath+'/'))
-    r = eos._runcmd(eos_receiver._eoscmd('file','rename',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""),os.path.basename(fsrc.file)),
-                                swanprj2path(args.receiver,args.cloned_project)))
-    r = eos._runcmd(eos_receiver._eoscmd('rmdir',os.path.join(tmppath,local_tmp.replace("/tmp/tmp", ""))))
-    r = eos._runcmd(eos_receiver._eoscmd('rmdir',tmppath))
-    shutil.rmtree(local_tmp)
+    try:
+        r = eos._runcmd(eos_receiver._eoscmd("mkdir","-p",tmppath))
+        # to copy between eos instances, copy locally and then to the target
+        # !! the host needs to be allowed in eos in order for this to work !!
+        r = eos._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/'))
+        r = eos_receiver._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.join(local_tmp,os.path.basename(fsrc.file))+'/',tmppath+'/'))
+        r = eos._runcmd(eos_receiver._eoscmd('file','rename',os.path.join(tmppath,os.path.basename(fsrc.file)),swanprj2path(args.receiver,args.cloned_project)))
+        r = eos._runcmd(eos_receiver._eoscmd('rmdir',tmppath))
+    finally:
+        shutil.rmtree(local_tmp)
 
 # helpers
 
