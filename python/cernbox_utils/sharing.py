@@ -358,6 +358,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
        return retobj
     else:
        retobj = []
+       target_path = None
        nodes = collapse_into_nodes(shares)
        for target_id in nodes:
           try:
