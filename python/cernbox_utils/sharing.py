@@ -1,7 +1,8 @@
 import cernbox_utils
 import subprocess
 import os
-from .script import get_eos_server_string
+import pwd
+from .script import get_eos_server_string, get_eos_server
 
 # remove duplicates, preserving order
 def squash(seq):
@@ -357,13 +358,30 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
  
        return retobj
     else:
+
+       eos_to_check = None
+
+       if role == "owner":
+          eos_to_check = cernbox_utils.eos.EOS(get_eos_server(user))
+          logger.debug("getting gid of file owner")
+          p = pwd.getpwnam(user)
+          role_ids = (p.pw_uid,p.pw_gid)
+          logger.debug("got gid %s"%str(role_ids))
+          eos_to_check.role=role_ids
+
        retobj = []
        target_path = None
        nodes = collapse_into_nodes(shares)
        for target_id in nodes:
           try:
-             eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(nodes[target_id].fileid_prefix))
-             eos_to_check.role=(0,0)
+             if role != "owner":
+                eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(nodes[target_id].fileid_prefix))
+                logger.debug("getting gid of file owner")
+                p = pwd.getpwnam(nodes[target_id].owner)
+                role_ids = (p.pw_uid,p.pw_gid)
+                logger.debug("got gid %s"%str(role_ids))
+                eos_to_check.role=role_ids
+
              f = eos_to_check.fileinfo("inode:"+target_id)
              target_path,target_size=f.file,f.treesize
           except  subprocess.CalledProcessError,x:

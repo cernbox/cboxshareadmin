@@ -39,6 +39,7 @@ from cernbox_utils.script import get_eos_server, get_eos_server_string
 
 import os, os.path, sys
 import subprocess
+import pwd
 
 def main():
    global config,logger
@@ -95,13 +96,18 @@ def main():
    logger.info("Using  DB: %s",config['dbhost'])
    logger.info("Using EOS: %s", eos_mgm_url)
 
+   logger.debug("getting gid of user")
+   p = pwd.getpwnam(this_user) # will end up with KeyError if user not resolved
+   role = (p.pw_uid,p.pw_gid)
+   logger.debug("got gid %s"%str(role))
+
    global eos,eos_no_backend,db
    import cernbox_utils.db, cernbox_utils.eos
    db = cernbox_utils.db.ShareDB()
    eos = cernbox_utils.eos.EOS(eos_mgm_url)
-   eos.role=(0,0)
+   eos.role=role # do not run commands as root...
    eos_no_backend = cernbox_utils.eos.EOS()
-   eos_no_backend.role=(0,0)
+   eos_no_backend.role=role # do not run commands as root...
 
    def print_json(obj):
        if args.json:
@@ -223,16 +229,7 @@ def _cmd_list_shared(args,role,inode):
 
 
 def cmd_clone_share(args):
-    
-    import cernbox_utils.sharing as sharing
-    import pwd
 
-    logger.debug("getting gid of sharer")
-    p = pwd.getpwnam(args.sharer) # will end up with KeyError if user not resolved
-    sharer_role = (p.pw_uid,p.pw_gid)
-    logger.debug("got gid %s"%str(sharer_role))
-
-    eos.role=sharer_role # do not run these commands as root...
     fsrc = get_swan_project_fileinfo(eos,args.sharer,args.shared_project)
 
     if not fsrc:
@@ -273,10 +270,8 @@ def cmd_clone_share(args):
         r = eos._runcmd(eos_receiver._eoscmd("mkdir","-p",tmppath))
         # to copy between eos instances, copy locally and then to the target
         # !! the host needs to be allowed in eos in order for this to work !!
-
-        eos_no_backend.role=sharer_role # do not run these commands as root...
         r = eos._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.normpath(fsrc.file)+'/',local_tmp+'/'))
-        eos_no_backend.role=receiver_role # do not run these commands as root...
+        eos_no_backend.role=receiver_role # do not run these commands as root nor the owner...
         r = eos_receiver._runcmd(eos_no_backend._eoscmd("cp","-r",os.path.join(local_tmp,os.path.basename(fsrc.file))+'/',tmppath+'/'))
         r = eos._runcmd(eos_receiver._eoscmd('file','rename',os.path.join(tmppath,os.path.basename(fsrc.file)),swanprj2path(args.receiver,args.cloned_project)))
         r = eos._runcmd(eos_receiver._eoscmd('rmdir',tmppath))
