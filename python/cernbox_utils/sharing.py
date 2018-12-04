@@ -389,6 +389,10 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
                 # eos entry does not exist
                 logger.warning("DANGLING_SHARE inode=%s",target_id)
                 target_path,target_size=None,0
+          except KeyError, e:
+                # getpwnam failed because the user does not exist
+                logger.warning("Sharer username no longer exist (%s)",nodes[target_id].owner)
+                target_path,target_size=None,0
  
  
           if target_path or include_broken:
