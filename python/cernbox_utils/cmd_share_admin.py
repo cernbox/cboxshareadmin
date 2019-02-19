@@ -179,13 +179,14 @@ def verify(args,config,eos,db):
             logger.fatal("deep check disabled by previous errors")
             return
 
-         if args.homedir:
+         if args.project_name:
+            homedir = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
+         elif args.homedir:
             homedir = args.homedir
          else:
            homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
             #homedir = '/eos/project/c/cmsgem-ge11-production'
             #homedir = '/eos/project/a/atlasweb'
-
 
          cnt = 0
          cnt_fix = 0
@@ -243,7 +244,16 @@ def verify(args,config,eos,db):
 
             # expected ACL
             expected_acls = [eos.AclEntry(entity="u",name=args.shares_owner,bits="rwx!m")] # this acl entry should be always set for every directory in homedir
+
             p = os.path.normpath(f.file)
+
+            if args.project_name:
+               expected_acls += [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
+                                 eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
+
+
+               if p.startswith(os.path.join(homedir,'www')):
+                  expected_acls += [eos.AclEntry(entity="u",name='wwweos',bits='rx')]
             
             assert(f.is_dir())
             

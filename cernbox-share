@@ -93,7 +93,8 @@ def main():
    subcmd.add_argument("--fix", default=False, action='store_true', help="fix any sharing inconsistencies in the storage and in the database")
    subcmd.add_argument("--fix-all-perms", default=False, action='store_true', help="fix all permisions (even if different and potentially overriding manualy set permissions)")
    subcmd.add_argument("--deep-fs-check", default=False, action='store_true', help="check the entire filesystem of the share_owner to misconfigured ACLs also in non-shared folders")
-   subcmd.add_argument("--homedir", default="", action='store', help="override home directory (e.g. to check project spaces), if not set then it defaults to user home directory of shares_owner")
+   subcmd.add_argument("--homedir", default="", action='store', help="override home directory if not set then it defaults to user home directory of shares_owner")
+   subcmd.add_argument("--project-name", default="", action='store', help="check project and override home directory")
    subcmd.add_argument("--logdir",default="",action="store",help="log directory")
    subcmd.add_argument("shares_owner", help="'-' to check all users in the system")
 
