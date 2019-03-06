@@ -186,6 +186,12 @@ def get_eos_backend(user):
 
 
 def get_eos_server(user):
+    
+    global config
+    force_eos_mgm = config.get('force_eos_mgm')
+    if force_eos_mgm:
+        return config.get('eos_mgm_url')
+
     backend = get_eos_backend(user)
     return get_eos_server_string(backend)
 

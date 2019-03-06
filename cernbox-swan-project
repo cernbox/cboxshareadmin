@@ -35,7 +35,7 @@ eos_mgm_url = None
 import cernbox_utils
 
 from cernbox_utils.errors import CmdBadRequestError
-from cernbox_utils.script import get_eos_server, get_eos_server_string
+from cernbox_utils.script import get_eos_server
 
 import os, os.path, sys
 import subprocess
