@@ -154,8 +154,15 @@ class Data(object):
 
 
 def get_eos_backend(user):
-    import redis
+    
     global config
+    # We might not be using redis...
+    if not config.get('redis_host') or \
+        not config.get('redis_port') or \
+        not config.get('redis_password'):
+        return ''
+
+    import redis
 
     logger.debug('getting eos backend for user %s', user)
 
@@ -197,4 +204,7 @@ def get_eos_server(user):
 
 
 def get_eos_server_string(backend):
+    global config
+    if not backend:
+        return config.get('eos_mgm_url')
     return 'root://%s.cern.ch' % ('eosuser-internal' if backend == 'oldhome' else backend)
