@@ -100,9 +100,11 @@ class ShareDB:
       if initiator is None:
          initiator=owner
 
-      assert(all(c.isalnum() for c in owner))
-      assert(all(c.isalnum() for c in initiator))
-      assert(all(c.isalnum() or c=='-' for c in sharee)) # egroups may have dash in the name
+      # egroups may have dash in the name
+      # in up2u pilot the usernames have underscore
+      assert(all(c.isalnum() or c=='-' or c=='_' for c in owner))
+      assert(all(c.isalnum() or c=='-' or c=='_' for c in initiator))
+      assert(all(c.isalnum() or c=='-' or c=='_' for c in sharee)) 
 
       if '-' in sharee:
          share_type = 1 # group
