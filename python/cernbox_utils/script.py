@@ -207,4 +207,11 @@ def get_eos_server_string(backend):
     global config
     if not backend:
         return config.get('eos_mgm_url')
-    return 'root://%s.cern.ch' % ('eosuser-internal' if backend == 'oldhome' else backend)
+
+    if  backend == 'oldhome' or backend == 'oldproject':
+        return 'root://eosuser-internal.cern.ch'
+
+    if 'newproject' in backend:
+        return 'root://%s.cern.ch' % backend.replace('newproject', 'eosproject')
+
+    return 'root://%s.cern.ch' % backend
