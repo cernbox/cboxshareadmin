@@ -35,7 +35,7 @@ class ShareDB:
 
       self.db = db
       
-   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None,share_id=None):
+   def get_share(self,fid=None,sharee=None,owner=None,share_type=None,share_time_greater_than=None,item_type=None,share_id=None,orphans=False):
       """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
       """
       cur = self.db.cursor()
@@ -66,6 +66,9 @@ class ShareDB:
 
          if share_type == "regular": 
             WHERE.append('share_type != 3')
+
+      if not orphans: # only include non orphan shares
+         WHERE.append('(orphan = 0 or orphan IS NULL)')
 
       if WHERE:
          WHERE = "WHERE " + (' and '.join(WHERE))

@@ -36,7 +36,7 @@ def verify(args,config,eos,db):
          fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
          logger.addHandler(fh)
 
-      shares=db.get_share(owner=args.shares_owner,share_type="regular")
+      shares=db.get_share(owner=args.shares_owner,share_type="regular",orphans=args.orphans)
 
       # if needed this can be used to split read from write traffic in order not to overload the instance
 
