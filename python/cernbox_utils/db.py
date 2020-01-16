@@ -179,3 +179,22 @@ class ShareDB:
 
       # Check referential integrity.      
       # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);
+
+
+
+   def set_orphan(self,id):
+      """ Set single share represented by id as orphan.
+      """
+
+      cur = self.db.cursor()
+      
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql="UPDATE oc_share SET orphan=1 WHERE id=%d;"%int(id)
+      
+      logger.debug(sql) # FIXME: debug?
+      cur.execute(sql)
+      self.db.commit()
+
+      # Check referential integrity.      
+      # insert into oc_share(share_type, share_with, uid_owner, parent, item_type, item_source, item_target, file_source, file_target, permissions, stime) values (0,"rosma","cmsgemhw",NULL, "folder",28284090, "/28284090", 28284090, "/GE11_Shared_Documents (#28284090)",1,1489496970);

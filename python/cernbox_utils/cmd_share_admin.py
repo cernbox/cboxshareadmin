@@ -80,17 +80,17 @@ def verify(args,config,eos,db):
             if f.file.startswith(config['eos_recycle_dir']):
                # eos entry is in the trashbin
                logger.error("TRASHBIN_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
-               logger.error("FIX: DELETE %s",s)
+               logger.error("FIX: SET_ORPHAN %s",s)
                if args.fix:
-                  db.delete_share(s.id)
+                  db.set_orphan(s.id)
                continue
          except subprocess.CalledProcessError,x:
             if x.returncode == 2:
                # eos entry does not exist
                logger.error("DANGLING_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
-               logger.error("FIX: DELETE %s",s)
+               logger.error("FIX: SET_ORPHAN %s",s)
                if args.fix:
-                  db.delete_share(s.id)
+                  db.set_orphan(s.id)
                continue
 
          # share pointing outside of the home directories area
