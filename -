@@ -1,0 +1,269 @@
+2019-10-23 17:29:19,009 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Using  DB: dbod-cboxeos.cern.ch:5504
+2019-10-23 17:29:19,009 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Using EOS: root://eosuser-internal.cern.ch
+2019-10-23 17:29:19,023 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:SELECT * FROM oc_share WHERE uid_owner = "suizquie" and share_type != 3
+2019-10-23 17:29:19,163 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111058L, 0, 'wwweos', 'suizquie', 'suizquie', None, 'folder', '81131591', None, 81131591L, '/LHCMagnets10', 1, 1524667894L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,163 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111086L, 0, 'wwweos', 'suizquie', 'suizquie', None, 'folder', '81147627', None, 81147627L, '/RDMagnets10', 1, 1524672832L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,163 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111210L, 1, 'cernbox-project-roxie-admins', 'suizquie', 'suizquie', None, 'folder', '81127818', None, 81127818L, '/distribution', 15, 1524734352L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,163 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111282L, 1, 'cernbox-project-roxie-admins', 'suizquie', 'suizquie', None, 'folder', '81131591', None, 81131591L, '/LHCMagnets10', 15, 1524744359L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,163 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111288L, 1, 'cernbox-project-roxie-admins', 'suizquie', 'suizquie', None, 'folder', '81143371', None, 81143371L, '/users', 15, 1524744511L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111290L, 0, 'hagen', 'suizquie', 'suizquie', None, 'folder', '81248447', None, 81248447L, '/hagen', 15, 1524744611L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111358L, 0, 'mmentink', 'suizquie', 'suizquie', None, 'folder', '81260409', None, 81260409L, '/mmentink', 15, 1524755741L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111359L, 0, 'vcalvell', 'suizquie', 'suizquie', None, 'folder', '81268965', None, 81268965L, '/vcalvell', 15, 1524755877L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111402L, 0, 'mprioli', 'suizquie', 'suizquie', None, 'folder', '81260437', None, 81260437L, '/mprioli', 15, 1524756953L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111404L, 0, 'mvalette', 'suizquie', 'suizquie', None, 'folder', '81260528', None, 81260528L, '/mvalette', 15, 1524757010L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111408L, 0, 'mmacieje', 'suizquie', 'suizquie', None, 'folder', '81260408', None, 81260408L, '/mmacieje', 15, 1524757181L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111409L, 0, 'lbortot', 'suizquie', 'suizquie', None, 'folder', '81255607', None, 81255607L, '/lbortot', 15, 1524757320L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111410L, 0, 'lbicciol', 'suizquie', 'suizquie', None, 'folder', '81255605', None, 81255605L, '/lbicciol', 15, 1524757346L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111411L, 0, 'jghini', 'suizquie', 'suizquie', None, 'folder', '81254827', None, 81254827L, '/jghini', 15, 1524757378L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111412L, 0, 'jferrada', 'suizquie', 'suizquie', None, 'folder', '81249309', None, 81249309L, '/jferrada', 15, 1524757400L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111413L, 0, 'jevannug', 'suizquie', 'suizquie', None, 'folder', '81305840', None, 81305840L, '/jevannug', 15, 1524757432L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111414L, 0, 'fwolf', 'suizquie', 'suizquie', None, 'folder', '81240509', None, 81240509L, '/fwolf', 15, 1524757575L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111415L, 0, 'afoussat', 'suizquie', 'suizquie', None, 'folder', '81150611', None, 81150611L, '/afoussat', 15, 1524757688L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111416L, 0, 'amilanes', 'suizquie', 'suizquie', None, 'folder', '81170977', None, 81170977L, '/amilanes', 15, 1524757724L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111417L, 0, 'aparrell', 'suizquie', 'suizquie', None, 'folder', '81185856', None, 81185856L, '/aparrell', 15, 1524757758L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111418L, 0, 'asanzull', 'suizquie', 'suizquie', None, 'folder', '81185860', None, 81185860L, '/asanzull', 15, 1524757817L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,164 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111419L, 0, 'auchmann', 'suizquie', 'suizquie', None, 'folder', '81186914', None, 81186914L, '/auchmann', 15, 1524757860L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111421L, 0, 'bocian', 'suizquie', 'suizquie', None, 'folder', '81214594', None, 81214594L, '/bocian', 15, 1524757947L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111422L, 0, 'dbarna', 'suizquie', 'suizquie', None, 'folder', '81224188', None, 81224188L, '/dbarna', 15, 1524757979L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111424L, 0, 'ferracin', 'suizquie', 'suizquie', None, 'folder', '81239709', None, 81239709L, '/ferracin', 15, 1524758366L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111429L, 0, 'alouzgui', 'suizquie', 'suizquie', None, 'folder', '81170937', None, 81170937L, '/alouzgui', 15, 1524759365L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111430L, 0, 'cpetrone', 'suizquie', 'suizquie', None, 'folder', '81305838', None, 81305838L, '/cpetrone', 15, 1524759426L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111431L, 0, 'emm', 'suizquie', 'suizquie', None, 'folder', '81224374', None, 81224374L, '/emm', 15, 1524759465L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111433L, 0, 'emnilsso', 'suizquie', 'suizquie', None, 'folder', '81224398', None, 81224398L, '/emnilsso', 15, 1524759482L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111435L, 0, 'enfelcin', 'suizquie', 'suizquie', None, 'folder', '81305839', None, 81305839L, '/enfelcin', 15, 1524759541L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111436L, 0, 'etodesco', 'suizquie', 'suizquie', None, 'folder', '81226676', None, 81226676L, '/etodesco', 15, 1524759577L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111437L, 0, 'gvallone', 'suizquie', 'suizquie', None, 'folder', '81242897', None, 81242897L, '/gvallone', 15, 1524759645L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111440L, 0, 'emm', 'suizquie', 'suizquie', None, 'folder', '81224400', None, 81224400L, '/eravaiol', 15, 1524760072L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111441L, 0, 'derijk', 'suizquie', 'suizquie', None, 'folder', '81224191', None, 81224191L, '/derijk', 1, 1524760117L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111585L, 1, 'roxie-eosusers', 'suizquie', 'suizquie', None, 'folder', '81127818', None, 81127818L, '/distribution', 1, 1524827402L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,165 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111587L, 1, 'cernbox-project-roxie-admins', 'suizquie', 'suizquie', None, 'folder', '81147627', None, 81147627L, '/RDMagnets10', 15, 1524827731L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (111607L, 0, 'russ', 'suizquie', 'suizquie', None, 'folder', '81305842', None, 81305842L, '/russ', 15, 1524832270L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (128229L, 0, 'dpracht', 'suizquie', 'suizquie', None, 'folder', '105726949', None, 105726949L, '/dpracht', 15, 1533133916L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (128366L, 0, 'mafgarci', 'suizquie', 'suizquie', None, 'folder', '106156589', None, 106156589L, '/mafgarci', 15, 1533215298L, 0, None, None, 0, 'oldproject', 0, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (133920L, 0, 'kpepiton', 'suizquie', 'suizquie', None, 'folder', '111621458', None, 111621458L, '/kpepiton', 15, 1535983930L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (133923L, 0, 'kpepiton', 'suizquie', 'suizquie', None, 'folder', '81282421', None, 81282421L, '/roxie10_2018', 15, 1535984154L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (137768L, 0, 'eetakala', 'suizquie', 'suizquie', None, 'folder', '114006139', None, 114006139L, '/eetakala', 15, 1537788200L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (160814L, 0, 'mwallin', 'suizquie', 'suizquie', None, 'folder', '127109776', None, 127109776L, '/mwallin', 15, 1548925654L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (170231L, 0, 'jbernhar', 'suizquie', 'suizquie', None, 'folder', '130273297', None, 130273297L, '/jbernhar', 15, 1553092738L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (173733L, 0, 'egauther', 'suizquie', 'suizquie', None, 'folder', '131533429', None, 131533429L, '/egauther', 15, 1554631036L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (191431L, 0, 'femurgia', 'suizquie', 'suizquie', None, 'folder', '136552796', None, 136552796L, '/femurgia', 15, 1562855149L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (202174L, 0, 'domartin', 'suizquie', 'suizquie', None, 'folder', '139637305', None, 139637305L, '/domartin', 15, 1568279522L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (204253L, 0, 'gisucci', 'suizquie', 'suizquie', None, 'folder', '139967872', None, 139967872L, '/gisucci', 15, 1568912181L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:ROW: (207909L, 0, 'flackner', 'suizquie', 'suizquie', None, 'folder', '140891728', None, 140891728L, '/flackner', 15, 1570522480L, 0, None, None, 0, 'oldproject', None, None)
+2019-10-23 17:29:19,166 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Found 49 shares of user suizquie
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111058 suizquie->wwweos 81131591 '/LHCMagnets10'
+2019-10-23 17:29:19,166 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81131591', '-m']
+2019-10-23 17:29:19,199 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111058 suizquie->wwweos 81131591 '/LHCMagnets10' '/eos/project/r/roxie/LHCMagnets10'
+2019-10-23 17:29:19,199 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111086 suizquie->wwweos 81147627 '/RDMagnets10'
+2019-10-23 17:29:19,199 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81147627', '-m']
+2019-10-23 17:29:19,225 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111086 suizquie->wwweos 81147627 '/RDMagnets10' '/eos/project/r/roxie/RDMagnets10'
+2019-10-23 17:29:19,226 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111210 suizquie->cernbox-project-roxie-admins 81127818 '/distribution'
+2019-10-23 17:29:19,226 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81127818', '-m']
+2019-10-23 17:29:19,258 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111210 suizquie->cernbox-project-roxie-admins 81127818 '/distribution' '/eos/project/r/roxie/distribution'
+2019-10-23 17:29:19,258 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111282 suizquie->cernbox-project-roxie-admins 81131591 '/LHCMagnets10'
+2019-10-23 17:29:19,258 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81131591', '-m']
+2019-10-23 17:29:19,285 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111282 suizquie->cernbox-project-roxie-admins 81131591 '/LHCMagnets10' '/eos/project/r/roxie/LHCMagnets10'
+2019-10-23 17:29:19,285 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111288 suizquie->cernbox-project-roxie-admins 81143371 '/users'
+2019-10-23 17:29:19,285 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81143371', '-m']
+2019-10-23 17:29:19,311 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111288 suizquie->cernbox-project-roxie-admins 81143371 '/users' '/eos/project/r/roxie/users'
+2019-10-23 17:29:19,311 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111290 suizquie->hagen 81248447 '/hagen'
+2019-10-23 17:29:19,311 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81248447', '-m']
+2019-10-23 17:29:19,348 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111290 suizquie->hagen 81248447 '/hagen' '/eos/project/r/roxie/users/hagen'
+2019-10-23 17:29:19,348 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111358 suizquie->mmentink 81260409 '/mmentink'
+2019-10-23 17:29:19,349 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81260409', '-m']
+2019-10-23 17:29:19,376 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111358 suizquie->mmentink 81260409 '/mmentink' '/eos/project/r/roxie/users/mmentink'
+2019-10-23 17:29:19,376 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111359 suizquie->vcalvell 81268965 '/vcalvell'
+2019-10-23 17:29:19,376 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81268965', '-m']
+2019-10-23 17:29:19,402 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111359 suizquie->vcalvell 81268965 '/vcalvell' '/eos/project/r/roxie/users/vcalvell'
+2019-10-23 17:29:19,402 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111402 suizquie->mprioli 81260437 '/mprioli'
+2019-10-23 17:29:19,403 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81260437', '-m']
+2019-10-23 17:29:19,425 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111402 suizquie->mprioli 81260437 '/mprioli' '/eos/project/r/roxie/users/mprioli'
+2019-10-23 17:29:19,425 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111404 suizquie->mvalette 81260528 '/mvalette'
+2019-10-23 17:29:19,425 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81260528', '-m']
+2019-10-23 17:29:19,448 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111404 suizquie->mvalette 81260528 '/mvalette' '/eos/project/r/roxie/users/mvalette'
+2019-10-23 17:29:19,448 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111408 suizquie->mmacieje 81260408 '/mmacieje'
+2019-10-23 17:29:19,448 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81260408', '-m']
+2019-10-23 17:29:19,471 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111408 suizquie->mmacieje 81260408 '/mmacieje' '/eos/project/r/roxie/users/mmacieje'
+2019-10-23 17:29:19,472 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111409 suizquie->lbortot 81255607 '/lbortot'
+2019-10-23 17:29:19,472 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81255607', '-m']
+2019-10-23 17:29:19,498 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111409 suizquie->lbortot 81255607 '/lbortot' '/eos/project/r/roxie/users/lbortot'
+2019-10-23 17:29:19,498 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111410 suizquie->lbicciol 81255605 '/lbicciol'
+2019-10-23 17:29:19,498 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81255605', '-m']
+2019-10-23 17:29:19,522 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111410 suizquie->lbicciol 81255605 '/lbicciol' '/eos/project/r/roxie/users/lbicciol'
+2019-10-23 17:29:19,522 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111411 suizquie->jghini 81254827 '/jghini'
+2019-10-23 17:29:19,523 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81254827', '-m']
+2019-10-23 17:29:19,548 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111411 suizquie->jghini 81254827 '/jghini' '/eos/project/r/roxie/users/jghini'
+2019-10-23 17:29:19,548 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111412 suizquie->jferrada 81249309 '/jferrada'
+2019-10-23 17:29:19,548 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81249309', '-m']
+2019-10-23 17:29:19,572 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111412 suizquie->jferrada 81249309 '/jferrada' '/eos/project/r/roxie/users/jferrada'
+2019-10-23 17:29:19,573 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111413 suizquie->jevannug 81305840 '/jevannug'
+2019-10-23 17:29:19,573 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81305840', '-m']
+2019-10-23 17:29:19,596 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111413 suizquie->jevannug 81305840 '/jevannug' '/eos/project/r/roxie/users/jevannug'
+2019-10-23 17:29:19,596 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111414 suizquie->fwolf 81240509 '/fwolf'
+2019-10-23 17:29:19,596 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81240509', '-m']
+2019-10-23 17:29:19,620 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111414 suizquie->fwolf 81240509 '/fwolf' '/eos/project/r/roxie/users/fwolf'
+2019-10-23 17:29:19,620 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111415 suizquie->afoussat 81150611 '/afoussat'
+2019-10-23 17:29:19,620 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81150611', '-m']
+2019-10-23 17:29:19,645 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111415 suizquie->afoussat 81150611 '/afoussat' '/eos/project/r/roxie/users/afoussat'
+2019-10-23 17:29:19,645 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111416 suizquie->amilanes 81170977 '/amilanes'
+2019-10-23 17:29:19,645 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81170977', '-m']
+2019-10-23 17:29:19,670 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111416 suizquie->amilanes 81170977 '/amilanes' '/eos/project/r/roxie/users/amilanes'
+2019-10-23 17:29:19,670 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111417 suizquie->aparrell 81185856 '/aparrell'
+2019-10-23 17:29:19,670 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81185856', '-m']
+2019-10-23 17:29:19,694 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111417 suizquie->aparrell 81185856 '/aparrell' '/eos/project/r/roxie/users/aparrell'
+2019-10-23 17:29:19,694 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111418 suizquie->asanzull 81185860 '/asanzull'
+2019-10-23 17:29:19,694 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81185860', '-m']
+2019-10-23 17:29:19,718 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111418 suizquie->asanzull 81185860 '/asanzull' '/eos/project/r/roxie/users/asanzull'
+2019-10-23 17:29:19,718 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111419 suizquie->auchmann 81186914 '/auchmann'
+2019-10-23 17:29:19,719 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81186914', '-m']
+2019-10-23 17:29:19,744 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111419 suizquie->auchmann 81186914 '/auchmann' '/eos/project/r/roxie/users/auchmann'
+2019-10-23 17:29:19,744 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111421 suizquie->bocian 81214594 '/bocian'
+2019-10-23 17:29:19,744 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81214594', '-m']
+2019-10-23 17:29:19,768 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111421 suizquie->bocian 81214594 '/bocian' '/eos/project/r/roxie/users/bocian'
+2019-10-23 17:29:19,768 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111422 suizquie->dbarna 81224188 '/dbarna'
+2019-10-23 17:29:19,768 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81224188', '-m']
+2019-10-23 17:29:19,792 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111422 suizquie->dbarna 81224188 '/dbarna' '/eos/project/r/roxie/users/dbarna'
+2019-10-23 17:29:19,792 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111424 suizquie->ferracin 81239709 '/ferracin'
+2019-10-23 17:29:19,793 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81239709', '-m']
+2019-10-23 17:29:19,820 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111424 suizquie->ferracin 81239709 '/ferracin' '/eos/project/r/roxie/users/ferracin'
+2019-10-23 17:29:19,820 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111429 suizquie->alouzgui 81170937 '/alouzgui'
+2019-10-23 17:29:19,820 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81170937', '-m']
+2019-10-23 17:29:19,846 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111429 suizquie->alouzgui 81170937 '/alouzgui' '/eos/project/r/roxie/users/alouzgui'
+2019-10-23 17:29:19,847 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111430 suizquie->cpetrone 81305838 '/cpetrone'
+2019-10-23 17:29:19,847 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81305838', '-m']
+2019-10-23 17:29:19,888 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111430 suizquie->cpetrone 81305838 '/cpetrone' '/eos/project/r/roxie/users/cpetrone'
+2019-10-23 17:29:19,888 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111431 suizquie->emm 81224374 '/emm'
+2019-10-23 17:29:19,888 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81224374', '-m']
+2019-10-23 17:29:19,913 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111431 suizquie->emm 81224374 '/emm' '/eos/project/r/roxie/users/emm'
+2019-10-23 17:29:19,913 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111433 suizquie->emnilsso 81224398 '/emnilsso'
+2019-10-23 17:29:19,913 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81224398', '-m']
+2019-10-23 17:29:19,938 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111433 suizquie->emnilsso 81224398 '/emnilsso' '/eos/project/r/roxie/users/emnilsso'
+2019-10-23 17:29:19,938 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111435 suizquie->enfelcin 81305839 '/enfelcin'
+2019-10-23 17:29:19,938 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81305839', '-m']
+2019-10-23 17:29:19,963 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111435 suizquie->enfelcin 81305839 '/enfelcin' '/eos/project/r/roxie/users/enfelcin'
+2019-10-23 17:29:19,963 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111436 suizquie->etodesco 81226676 '/etodesco'
+2019-10-23 17:29:19,964 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81226676', '-m']
+2019-10-23 17:29:19,990 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111436 suizquie->etodesco 81226676 '/etodesco' '/eos/project/r/roxie/users/etodesco'
+2019-10-23 17:29:19,990 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111437 suizquie->gvallone 81242897 '/gvallone'
+2019-10-23 17:29:19,990 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81242897', '-m']
+2019-10-23 17:29:20,016 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111437 suizquie->gvallone 81242897 '/gvallone' '/eos/project/r/roxie/users/gvallone'
+2019-10-23 17:29:20,016 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111440 suizquie->emm 81224400 '/eravaiol'
+2019-10-23 17:29:20,016 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81224400', '-m']
+2019-10-23 17:29:20,039 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111440 suizquie->emm 81224400 '/eravaiol' '/eos/project/r/roxie/users/eravaiol'
+2019-10-23 17:29:20,039 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111441 suizquie->derijk 81224191 '/derijk'
+2019-10-23 17:29:20,039 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81224191', '-m']
+2019-10-23 17:29:20,064 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111441 suizquie->derijk 81224191 '/derijk' '/eos/project/r/roxie/users/derijk'
+2019-10-23 17:29:20,064 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111585 suizquie->roxie-eosusers 81127818 '/distribution'
+2019-10-23 17:29:20,064 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81127818', '-m']
+2019-10-23 17:29:20,094 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111585 suizquie->roxie-eosusers 81127818 '/distribution' '/eos/project/r/roxie/distribution'
+2019-10-23 17:29:20,095 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111587 suizquie->cernbox-project-roxie-admins 81147627 '/RDMagnets10'
+2019-10-23 17:29:20,095 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81147627', '-m']
+2019-10-23 17:29:20,121 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111587 suizquie->cernbox-project-roxie-admins 81147627 '/RDMagnets10' '/eos/project/r/roxie/RDMagnets10'
+2019-10-23 17:29:20,121 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 111607 suizquie->russ 81305842 '/russ'
+2019-10-23 17:29:20,121 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81305842', '-m']
+2019-10-23 17:29:20,149 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=111607 suizquie->russ 81305842 '/russ' '/eos/project/r/roxie/users/russ'
+2019-10-23 17:29:20,149 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 128229 suizquie->dpracht 105726949 '/dpracht'
+2019-10-23 17:29:20,149 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:105726949', '-m']
+2019-10-23 17:29:20,175 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=128229 suizquie->dpracht 105726949 '/dpracht' '/eos/project/r/roxie/users/dpracht'
+2019-10-23 17:29:20,176 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 128366 suizquie->mafgarci 106156589 '/mafgarci'
+2019-10-23 17:29:20,176 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:106156589', '-m']
+2019-10-23 17:29:20,202 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=128366 suizquie->mafgarci 106156589 '/mafgarci' '/eos/project/r/roxie/users/mafgarci'
+2019-10-23 17:29:20,202 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 133920 suizquie->kpepiton 111621458 '/kpepiton'
+2019-10-23 17:29:20,202 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:111621458', '-m']
+2019-10-23 17:29:20,231 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=133920 suizquie->kpepiton 111621458 '/kpepiton' '/eos/project/r/roxie/users/kpepiton'
+2019-10-23 17:29:20,231 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 133923 suizquie->kpepiton 81282421 '/roxie10_2018'
+2019-10-23 17:29:20,231 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:81282421', '-m']
+2019-10-23 17:29:20,257 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=133923 suizquie->kpepiton 81282421 '/roxie10_2018' '/eos/project/r/roxie/distribution/roxie10_2018'
+2019-10-23 17:29:20,257 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 137768 suizquie->eetakala 114006139 '/eetakala'
+2019-10-23 17:29:20,258 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:114006139', '-m']
+2019-10-23 17:29:20,283 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=137768 suizquie->eetakala 114006139 '/eetakala' '/eos/project/r/roxie/users/eetakala'
+2019-10-23 17:29:20,283 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 160814 suizquie->mwallin 127109776 '/mwallin'
+2019-10-23 17:29:20,283 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:127109776', '-m']
+2019-10-23 17:29:20,310 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=160814 suizquie->mwallin 127109776 '/mwallin' '/eos/project/r/roxie/users/mwallin'
+2019-10-23 17:29:20,310 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 170231 suizquie->jbernhar 130273297 '/jbernhar'
+2019-10-23 17:29:20,310 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:130273297', '-m']
+2019-10-23 17:29:20,335 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=170231 suizquie->jbernhar 130273297 '/jbernhar' '/eos/project/r/roxie/users/jbernhar'
+2019-10-23 17:29:20,335 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 173733 suizquie->egauther 131533429 '/egauther'
+2019-10-23 17:29:20,335 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:131533429', '-m']
+2019-10-23 17:29:20,362 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=173733 suizquie->egauther 131533429 '/egauther' '/eos/project/r/roxie/users/egauther'
+2019-10-23 17:29:20,362 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 191431 suizquie->femurgia 136552796 '/femurgia'
+2019-10-23 17:29:20,362 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:136552796', '-m']
+2019-10-23 17:29:20,387 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=191431 suizquie->femurgia 136552796 '/femurgia' '/eos/project/r/roxie/users/femurgia'
+2019-10-23 17:29:20,387 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 202174 suizquie->domartin 139637305 '/domartin'
+2019-10-23 17:29:20,387 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:139637305', '-m']
+2019-10-23 17:29:20,426 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=202174 suizquie->domartin 139637305 '/domartin' '/eos/project/r/roxie/users/domartin'
+2019-10-23 17:29:20,426 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 204253 suizquie->gisucci 139967872 '/gisucci'
+2019-10-23 17:29:20,426 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:139967872', '-m']
+2019-10-23 17:29:20,450 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=204253 suizquie->gisucci 139967872 '/gisucci' '/eos/project/r/roxie/users/gisucci'
+2019-10-23 17:29:20,450 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Processing share: 207909 suizquie->flackner 140891728 '/flackner'
+2019-10-23 17:29:20,450 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'file info', 'inode:140891728', '-m']
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:VALID_SHARE: share_id=207909 suizquie->flackner 140891728 '/flackner' '/eos/project/r/roxie/users/flackner'
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected shared paths with visibility to others (46)
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/cpetrone/ u:cpetrone:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/ferracin/ u:ferracin:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/etodesco/ u:etodesco:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/dpracht/ u:dpracht:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/eetakala/ u:eetakala:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/afoussat/ u:afoussat:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mmacieje/ u:mmacieje:rwx+d
+2019-10-23 17:29:20,474 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mvalette/ u:mvalette:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/asanzull/ u:asanzull:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/lbortot/ u:lbortot:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/amilanes/ u:amilanes:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/hagen/ u:hagen:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/jbernhar/ u:jbernhar:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/jevannug/ u:jevannug:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/distribution/roxie10_2018/ u:kpepiton:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/ egroup:cernbox-project-roxie-admins:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/auchmann/ u:auchmann:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/flackner/ u:flackner:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/bocian/ u:bocian:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/RDMagnets10/ u:wwweos:rx,egroup:cernbox-project-roxie-admins:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/distribution/ egroup:cernbox-project-roxie-admins:rwx+d,egroup:roxie-eosusers:rx
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mprioli/ u:mprioli:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mwallin/ u:mwallin:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/femurgia/ u:femurgia:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/russ/ u:russ:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/dbarna/ u:dbarna:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/LHCMagnets10/ u:wwweos:rx,egroup:cernbox-project-roxie-admins:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/aparrell/ u:aparrell:rwx+d
+2019-10-23 17:29:20,475 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/alouzgui/ u:alouzgui:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/fwolf/ u:fwolf:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/gisucci/ u:gisucci:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/emm/ u:emm:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/lbicciol/ u:lbicciol:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/kpepiton/ u:kpepiton:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/domartin/ u:domartin:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/vcalvell/ u:vcalvell:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/emnilsso/ u:emnilsso:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/egauther/ u:egauther:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mmentink/ u:mmentink:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/mafgarci/ u:mafgarci:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/jghini/ u:jghini:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/gvallone/ u:gvallone:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/eravaiol/ u:emm:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/enfelcin/ u:enfelcin:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/jferrada/ u:jferrada:rwx+d
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Expected acls in shared path /eos/project/r/roxie/users/derijk/ u:derijk:rx
+2019-10-23 17:29:20,476 INFO :e152d1e2-f5a9-11e9-ba0c-001e67e95a26:Blacklisted trees (0) which will not be analysed but are problematic
+2019-10-23 17:29:20,476 DEBUG:e152d1e2-f5a9-11e9-ba0c-001e67e95a26:running ['eos', '-r', '0', '0', 'root://eosuser-internal.cern.ch', 'find', '-d', '--fileinfo', '/eos/project/r/roxie']
+Traceback (most recent call last):
+  File "./cernbox-share", line 242, in <module>
+    sys.exit(main())
+  File "./cernbox-share", line 184, in main
+    cernbox_utils.cmd_share_admin.verify(args,config,eos,db)
+  File "/root/cboxshareadmin/python/cernbox_utils/cmd_share_admin.py", line 201, in verify
+    for f in eos.fileinfo_r(homedir,type="-d"):
+  File "/root/cboxshareadmin/python/cernbox_utils/eos.py", line 91, in fileinfo_r
+    for mline in self._runcmd(eos,echo=False)[1].splitlines():
+  File "/root/cboxshareadmin/python/cernbox_utils/eos.py", line 66, in _runcmd
+    return cernbox_utils.script.runcmd(cmd,env=self.env,shell=False,**cmd_opts)
+  File "/root/cboxshareadmin/python/cernbox_utils/script.py", line 96, in runcmd
+    stdout,stderr = process.communicate()
+  File "/usr/lib64/python2.7/subprocess.py", line 800, in communicate
+    return self._communicate(input)
+  File "/usr/lib64/python2.7/subprocess.py", line 1401, in _communicate
+    stdout, stderr = self._communicate_with_poll(input)
+  File "/usr/lib64/python2.7/subprocess.py", line 1455, in _communicate_with_poll
+    ready = poller.poll()
+KeyboardInterrupt

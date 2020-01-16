@@ -1,5 +1,6 @@
 import cernbox_utils.script
 import os
+import subprocess
 
 from cernbox_utils.eos import is_special_folder
 
