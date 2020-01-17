@@ -79,6 +79,7 @@ def verify(args,config,eos,db):
             # If the user shared from projects, we need to go to the respective EOS instance,
             # so we cannot assume (and always use) the user EOS instance.
             eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(s.fileid_prefix))
+            eos_to_check.role=(0,0)
             f=eos_to_check.fileinfo("inode:"+fid)
 
             if f.file.startswith(config['eos_recycle_dir']):
@@ -197,6 +198,8 @@ def verify(args,config,eos,db):
             eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.shares_owner))
             #homedir = '/eos/project/c/cmsgem-ge11-production'
             #homedir = '/eos/project/a/atlasweb'
+            
+         eos_to_check.role=(0,0)
 
          cnt = 0
          cnt_fix = 0
