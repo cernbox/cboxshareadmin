@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from cernbox_utils.eos import is_special_folder
+from .script import get_eos_server_string, get_eos_server
 
 logger = cernbox_utils.script.getLogger('cmd')
 
@@ -75,7 +76,10 @@ def verify(args,config,eos,db):
 
          # Verify if share points to a valid storage entity
          try:
-            f=eos.fileinfo("inode:"+fid)
+            # If the user shared from projects, we need to go to the respective EOS instance,
+            # so we cannot assume (and always use) the user EOS instance.
+            eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(s.fileid_prefix))
+            f=eos_to_check.fileinfo("inode:"+fid)
 
             if f.file.startswith(config['eos_recycle_dir']):
                # eos entry is in the trashbin
@@ -182,10 +186,15 @@ def verify(args,config,eos,db):
 
          if args.project_name:
             homedir = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
+            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.project_name, kind="project"))
          elif args.homedir:
             homedir = args.homedir
+            logger.warning("!! using default eos instance !!")
+            eos_to_check = eos
+            
          else:
-           homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
+            homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
+            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.shares_owner))
             #homedir = '/eos/project/c/cmsgem-ge11-production'
             #homedir = '/eos/project/a/atlasweb'
 
@@ -198,10 +207,10 @@ def verify(args,config,eos,db):
 
          cnt_fix_plaindir = 0
 
-         for f in eos.fileinfo_r(homedir,type="-d"):
+         for f in eos_to_check.fileinfo_r(homedir,type="-d"):
             cnt += 1
             try:
-               eos_acls = eos.parse_sysacl(f.xattr['sys.acl'])
+               eos_acls = eos_to_check.parse_sysacl(f.xattr['sys.acl'])
 
                # in the rest of this algorithm below we assume that ACL bits belong to a known set
                # modify with care...
@@ -244,17 +253,17 @@ def verify(args,config,eos,db):
                continue
 
             # expected ACL
-            expected_acls = [eos.AclEntry(entity="u",name=args.shares_owner,bits="rwx!m")] # this acl entry should be always set for every directory in homedir
+            expected_acls = [eos_to_check.AclEntry(entity="u",name=args.shares_owner,bits="rwx!m")] # this acl entry should be always set for every directory in homedir
 
             p = os.path.normpath(f.file)
 
             if args.project_name:
-               expected_acls += [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
-                                 eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
+               expected_acls += [eos_to_check.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
+                                 eos_to_check.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
 
 
                if p.startswith(os.path.join(homedir,'www')):
-                  expected_acls += [eos.AclEntry(entity="u",name='wwweos',bits='rx')]
+                  expected_acls += [eos_to_check.AclEntry(entity="u",name='wwweos',bits='rx')]
             
             assert(f.is_dir())
             
@@ -310,7 +319,7 @@ def verify(args,config,eos,db):
                         if 'rx' in acl1.bits:
                            safe_fix = True
 
-                        updated_acls.add(eos.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
+                        updated_acls.add(eos_to_check.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
                         removed_acls.remove(acl1)
                         added_acls.remove(acl2)
 
@@ -336,9 +345,9 @@ def verify(args,config,eos,db):
                   msg = ""
                   cnt_unsafe_fix +=1
 
-               logger.error("FIX_ACL%s: %s '%s' %s", msg, f.fid, f.file, " ".join([a[0]+" "+eos.dump_sysacl(a[1]) for a in actions]))
+               logger.error("FIX_ACL%s: %s '%s' %s", msg, f.fid, f.file, " ".join([a[0]+" "+eos_to_check.dump_sysacl(a[1]) for a in actions]))
 
-               eos_master.set_sysacl(f.file,eos.dump_sysacl(expected_acls),dryrun=dryrun)
+               eos_master.set_sysacl(f.file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
 
             else:
                pass

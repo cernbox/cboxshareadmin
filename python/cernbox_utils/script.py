@@ -153,7 +153,7 @@ class Data(object):
       return s
 
 
-def get_eos_backend(user):
+def get_eos_backend(account, kind="home"):
     
     global config
     # We might not be using redis...
@@ -164,42 +164,46 @@ def get_eos_backend(user):
 
     import redis
 
-    logger.debug('getting eos backend for user %s', user)
+    logger.debug('getting eos backend for %s', account)
 
     r = redis.StrictRedis(host=config.get('redis_host'), port=config.get('redis_port'), db=0,
                           password=config.get('redis_password'))
 
-    letter = user[0]
-    status = r.get('/eos/user/%s/%s' % (letter, user))
+    letter = account[0]
+
+    if kind == "home":
+        status = r.get('/eos/user/%s/%s' % (letter, account))
+    else:
+        status = r.get('/eos/%s/%s/%s' % (kind, letter, account))
 
     logger.debug('eos backend status: %s', status)
 
     if status == 'migrated':
-        return 'eoshome-%s' % letter
+        return 'eos%s-%s' % (kind, letter)
 
     elif status == 'not-migrated':
-        return 'oldhome'
+        return 'old%s' % kind
 
     elif status == 'ongoing-migration':
-        raise CmdBadRequestError("User ongoing migration")
+        raise CmdBadRequestError("Ongoing migration")
 
     else:
         default = r.get('default-user-not-found')
 
         if default == 'new-proxy':
-            return 'eoshome-%s' % letter
+            return 'eos%s-%s' % (kind, letter)
 
-    return 'oldhome'
+    return 'old%s' % kind
 
 
-def get_eos_server(user):
+def get_eos_server(user, kind="home"):
     
     global config
     force_eos_mgm = config.get('force_eos_mgm')
     if force_eos_mgm:
         return config.get('eos_mgm_url')
 
-    backend = get_eos_backend(user)
+    backend = get_eos_backend(user, kind)
     return get_eos_server_string(backend)
 
 
