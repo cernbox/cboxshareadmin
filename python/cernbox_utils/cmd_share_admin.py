@@ -217,7 +217,7 @@ def verify(args,config,eos,db):
 
                # in the rest of this algorithm below we assume that ACL bits belong to a known set
                # modify with care...
-               ALLOWED_ACLS = ['rx','rwx+d','rwx!m']
+               ALLOWED_ACLS = ['rx','rwx+d','rwx']
 
                def check_allowed():
                   for a in eos_acls:
