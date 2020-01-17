@@ -256,17 +256,18 @@ def verify(args,config,eos,db):
                continue
 
             # expected ACL
-            expected_acls = [eos_to_check.AclEntry(entity="u",name=args.shares_owner,bits="rwx!m")] # this acl entry should be always set for every directory in homedir
+            uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
+            expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
 
             p = os.path.normpath(f.file)
 
             if args.project_name:
-               expected_acls += [eos_to_check.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
-                                 eos_to_check.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
+               expected_acls += [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
+                                 eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
 
 
                if p.startswith(os.path.join(homedir,'www')):
-                  expected_acls += [eos_to_check.AclEntry(entity="u",name='wwweos',bits='rx')]
+                  expected_acls += [eos.AclEntry(entity="u",name='83367',bits='rx')] # uid wwweos
             
             assert(f.is_dir())
             
@@ -322,7 +323,8 @@ def verify(args,config,eos,db):
                         if 'rx' in acl1.bits:
                            safe_fix = True
 
-                        updated_acls.add(eos_to_check.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
+                        uid = str(pwd.getpwnam(acl1.name).pw_uid)
+                        updated_acls.add(eos.AclEntry(entity=acl1.entity,name=uid,bits=acl1.bits+"->"+acl2.bits))
                         removed_acls.remove(acl1)
                         added_acls.remove(acl2)
 
