@@ -16,7 +16,12 @@ def share2acl(s):
    from cernbox_utils.eos import EOS as eos
 
    # this is the expected ACL entry in the shared directory tree
-   acl = eos.AclEntry(name=s.share_with)
+
+   if is_egroup(s.share_with):
+      acl = eos.AclEntry(name=s.share_with)
+   else:
+      uid = str(pwd.getpwnam(s.share_with).pw_uid)
+      acl = eos.AclEntry(name=uid)
 
    if is_egroup(s.share_with):
       acl.entity = "egroup"
