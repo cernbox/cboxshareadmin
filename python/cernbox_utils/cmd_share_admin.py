@@ -352,7 +352,7 @@ def verify(args,config,eos,db):
 
                logger.error("FIX_ACL%s: %s '%s' %s", msg, f.fid, f.file, " ".join([a[0]+" "+eos_to_check.dump_sysacl(a[1]) for a in actions]))
 
-               eos_master.set_sysacl(f.file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
+               eos_to_check.set_sysacl(f.file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
 
             else:
                pass
