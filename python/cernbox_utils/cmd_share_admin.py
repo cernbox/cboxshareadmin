@@ -1,6 +1,7 @@
 import cernbox_utils.script
 import os
 import subprocess
+import re
 
 from cernbox_utils.eos import is_special_folder
 from .script import get_eos_server_string, get_eos_server
@@ -82,7 +83,7 @@ def verify(args,config,eos,db):
             eos_to_check.role=(0,0)
             f=eos_to_check.fileinfo("inode:"+fid)
 
-            if f.file.startswith(config['eos_recycle_dir']):
+            if re.match(config['eos_recycle_dir'], f.file):
                # eos entry is in the trashbin
                logger.error("TRASHBIN_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
                logger.error("FIX: SET_ORPHAN %s",s)
