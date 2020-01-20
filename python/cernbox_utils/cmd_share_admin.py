@@ -235,6 +235,8 @@ def verify(args,config,eos,db):
                if is_special_folder(f.file):
                   logger.error("Special folder should not have sys.acl set: %s",f.file)
                   # FIXME: remove ACL from special folder?
+                  cnt_skipped += 1
+                  continue
             except KeyError,x:
                if is_special_folder(f.file):
                   continue # skip this entry, it is okey for special folders not to have ACL at all
