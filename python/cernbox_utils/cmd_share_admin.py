@@ -332,8 +332,7 @@ def verify(args,config,eos,db):
                         if 'rx' in acl1.bits:
                            safe_fix = True
 
-                        uid = str(pwd.getpwnam(acl1.name).pw_uid)
-                        updated_acls.add(eos.AclEntry(entity=acl1.entity,name=uid,bits=acl1.bits+"->"+acl2.bits))
+                        updated_acls.add(eos.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
                         removed_acls.remove(acl1)
                         added_acls.remove(acl2)
 
