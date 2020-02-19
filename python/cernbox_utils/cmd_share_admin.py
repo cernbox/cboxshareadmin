@@ -155,6 +155,12 @@ def verify(args,config,eos,db):
             logger.error("USER_NOT_FOUND: share owner uid %s does not exist",s.uid_owner)
             continue
 
+         try:
+            pwd.getpwnam(s.share_with)
+         except:
+            logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.uid_owner)
+            continue
+
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
          
          # this is the expected ACL entry in the shared directory tree
