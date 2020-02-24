@@ -96,13 +96,13 @@ class EOS:
         return r
 
     def set_sysacl_r(self,path,acl,role=None,dryrun=True):
-        return self.__set_sysacl(path,acl,role,dryrun,'-r')
+        return self.__set_sysacl(path,acl,role,dryrun,'--recursive')
 
     def set_sysacl(self,path,acl,role=None,dryrun=True):
         return self.__set_sysacl(path,acl,role,dryrun,'')
 
     def __set_sysacl(self,path,acl,role,dryrun,opt):
-        eos = self._eoscmd("attr",opt,"set","sys.acl=%s"%acl,path,role=role)
+        eos = self._eoscmd("acl",opt, "--sys", acl,path,role=role)
         if dryrun:
             logger.warning("would run: %s",eos)
         else:
@@ -120,8 +120,9 @@ class EOS:
     class AclEntry(cernbox_utils.script.Data):
        _names = ['entity','name','bits']
 
+        # with the new atomic eos acl command, the format is different than before
        def __str__(self):
-           return ":".join([self.entity,self.name,self.bits])
+           return "%s:%s=%s" % (self.entity,self.name,self.bits)
 
        def __repr__(self):
            return str(self)
