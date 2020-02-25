@@ -359,8 +359,21 @@ def verify(args,config,eos,db):
                   cnt_unsafe_fix +=1
 
                logger.error("FIX_ACL%s: %s '%s' %s", msg, f.fid, f.file, " ".join([a[0]+" "+eos_to_check.dump_sysacl(a[1]) for a in actions]))
+               for a in actions:
+                  if a[0] == "ADD":
+                     for acl in a[1]:
+                        eos_to_check.set_sysacl_r(f.file,acl,dryrun=dryrun)
 
-               eos_to_check.set_sysacl_r(f.file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
+                  elif a[0] == "UPDATE":
+                     for acl in a[1]:
+                        acl.bits = acl.bits.split("->")[1]
+                        eos_to_check.set_sysacl_r(f.file,acl,dryrun=dryrun)
+
+
+                  elif a[0] == "REMOVE":
+                     for acl in a[1]:
+                        acl.bits = ''
+                        eos_to_check.set_sysacl_r(f.file,acl,dryrun=dryrun)
 
             else:
                pass
@@ -400,7 +413,8 @@ def remove_orphan_xbits(args,config,eos,db):
 
          if new_acls != eos_acls:
             logger.info(" --- NEW_ACL   --- %s --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(new_acls),eos.dump_sysacl(eos_acls))
-            eos.set_sysacl_r(f.file,eos.dump_sysacl(new_acls),dryrun=not args.fix)
+            for acl in new_acls:
+               eos.set_sysacl_r(f.file,acl,dryrun=not args.fix)
             fixed_cnt += 1
          else:
             #logger.info(" --- NO_CHANGE --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))

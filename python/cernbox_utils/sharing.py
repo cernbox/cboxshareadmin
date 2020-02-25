@@ -139,7 +139,8 @@ def update_acls(fid,eos,db,owner=None,dryrun=True):
     # WARNING: this deletes any acls set by hand, in the case of wwweos in user homedirs, they is a corresponding share
     
     for node in nodes:
-        eos.set_sysacl_r(node.file,eos.dump_sysacl(node.share_acl),dryrun=dryrun)
+      for acl in node.share_acl:
+         eos.set_sysacl_r(node.file,acl,dryrun=dryrun)
     
 
     return 0
