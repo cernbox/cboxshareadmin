@@ -153,12 +153,18 @@ def verify(args,config,eos,db):
             pwd.getpwnam(s.uid_owner)
          except:
             logger.error("USER_NOT_FOUND: share owner uid %s does not exist",s.uid_owner)
+            logger.error("FIX: SET_ORPHAN %s",s)
+            if args.fix:
+               db.set_orphan(s.id)
             continue
 
          try:
             pwd.getpwnam(s.share_with)
          except:
             logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.uid_owner)
+            logger.error("FIX: SET_ORPHAN %s",s)
+            if args.fix:
+               db.set_orphan(s.id)
             continue
 
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
