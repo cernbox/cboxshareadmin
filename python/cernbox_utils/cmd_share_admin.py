@@ -161,7 +161,7 @@ def verify(args,config,eos,db):
          try:
             pwd.getpwnam(s.share_with)
          except:
-            logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.uid_owner)
+            logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.share_with)
             logger.error("FIX: SET_ORPHAN %s",s)
             if args.fix:
                db.set_orphan(s.id)
