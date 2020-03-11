@@ -158,14 +158,17 @@ def verify(args,config,eos,db):
                db.set_orphan(s.id)
             continue
 
-         try:
-            pwd.getpwnam(s.share_with)
-         except:
-            logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.share_with)
-            logger.error("FIX: SET_ORPHAN %s",s)
-            if args.fix:
-               db.set_orphan(s.id)
-            continue
+         if s.share_type == 1:
+            logger.info("Share type 1 (egroup). Not checking if destination exists")
+         else:
+            try:
+               pwd.getpwnam(s.share_with)
+            except:
+               logger.error("USER_NOT_FOUND: share destination uid %s does not exist",s.share_with)
+               logger.error("FIX: SET_ORPHAN %s",s)
+               if args.fix:
+                  db.set_orphan(s.id)
+               continue
 
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
          
