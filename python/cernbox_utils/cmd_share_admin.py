@@ -1,4 +1,5 @@
 import cernbox_utils.script
+from cernbox_utils.ns_inspect import NSInspect
 import os
 import subprocess
 import re
@@ -203,19 +204,13 @@ def verify(args,config,eos,db):
 
          if args.project_name:
             homedir = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
-            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.project_name, kind="project"))
          elif args.homedir:
             homedir = args.homedir
-            logger.warning("!! using default eos instance !!")
-            eos_to_check = eos
             
          else:
             homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
-            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.shares_owner))
             #homedir = '/eos/project/c/cmsgem-ge11-production'
             #homedir = '/eos/project/a/atlasweb'
-            
-         eos_to_check.role=(0,0)
 
          cnt = 0
          cnt_fix = 0
@@ -226,10 +221,12 @@ def verify(args,config,eos,db):
 
          cnt_fix_plaindir = 0
 
-         for f in eos_to_check.fileinfo_r(homedir,type="-d"):
+         ns = NSInspect(config)
+
+         for (file, acls) in ns.inspect(homedir):
             cnt += 1
             try:
-               eos_acls = eos_to_check.parse_sysacl(f.xattr['sys.acl'])
+               eos_acls = eos.parse_sysacl(acls)
 
                # in the rest of this algorithm below we assume that ACL bits belong to a known set
                # modify with care...
@@ -238,7 +235,7 @@ def verify(args,config,eos,db):
                def check_allowed():
                   for a in eos_acls:
                      if not a.bits in ALLOWED_ACLS:
-                        logger.fatal("ACL bits not allowed: %s %s %s",a, f.file, eos.dump_sysacl(eos_acls))
+                        logger.fatal("ACL bits not allowed: %s %s %s",a, file, eos.dump_sysacl(eos_acls))
                         return False
                   return True
 
@@ -247,13 +244,13 @@ def verify(args,config,eos,db):
                   cnt_skipped += 1
                   continue
 
-               if is_special_folder(f.file):
-                  logger.error("Special folder should not have sys.acl set: %s",f.file)
+               if is_special_folder(file):
+                  logger.error("Special folder should not have sys.acl set: %s",file)
                   # FIXME: remove ACL from special folder?
                   cnt_skipped += 1
                   continue
             except KeyError,x:
-               if is_special_folder(f.file):
+               if is_special_folder(file):
                   continue # skip this entry, it is okey for special folders not to have ACL at all
                else:
                   eos_acls = [] # no ACLs defined for this directory
@@ -265,11 +262,11 @@ def verify(args,config,eos,db):
             # do not touch anything in blacklisted paths: we may not know what to do with them (yet)
             def is_blacklisted(path):
                for black_p in blacklist_paths:
-                  if f.file.startswith(black_p):
+                  if file.startswith(black_p):
                      return True
                return False
 
-            if is_blacklisted(f.file):
+            if is_blacklisted(file):
                cnt_skipped += 1
                continue
 
@@ -277,7 +274,7 @@ def verify(args,config,eos,db):
             uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
             expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
 
-            p = os.path.normpath(f.file)
+            p = os.path.normpath(file)
 
             if args.project_name:
                expected_acls += [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
@@ -286,8 +283,6 @@ def verify(args,config,eos,db):
 
                if p.startswith(os.path.join(homedir,'www')):
                   expected_acls += [eos.AclEntry(entity="u",name='83367',bits='rx')] # uid wwweos
-            
-            assert(f.is_dir())
             
             p += "/" # add trailing slash to directories, this will make sure that the top-of-shared-directory-tree also matches 
 
@@ -300,7 +295,7 @@ def verify(args,config,eos,db):
 
             expected_acls = cernbox_utils.sharing.squash(set(expected_acls))
 
-            logger.debug(" --- SCAN      --- %s --- %s --- %s",f.fid, f.file, eos.dump_sysacl(eos_acls))
+            logger.debug(" --- SCAN      --- %s --- %s", file, eos.dump_sysacl(eos_acls))
 
             dryrun = not args.fix
 
@@ -367,9 +362,9 @@ def verify(args,config,eos,db):
                   msg = ""
                   cnt_unsafe_fix +=1
 
-               logger.error("FIX_ACL%s: %s '%s' %s", msg, f.fid, f.file, " ".join([a[0]+" "+eos_to_check.dump_sysacl(a[1]) for a in actions]))
+               logger.error("FIX_ACL%s: %s %s", msg, file, " ".join([a[0]+" "+eos.dump_sysacl(a[1]) for a in actions]))
 
-               eos_to_check.set_sysacl(f.file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
+               eos_to_check.set_sysacl(file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
 
             else:
                pass
