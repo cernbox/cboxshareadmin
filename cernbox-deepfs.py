@@ -24,7 +24,7 @@ class DeepFS:
 
     def __init__(self, configs):
         self.configs = configs
-        self.current_dir = os.getcwd()
+        self.current_dir = os.path.dirname(os.path.realpath(__file__))
 
     
     def _send_metrics(self, metrics):
