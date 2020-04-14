@@ -131,8 +131,8 @@ def configure(config_path):
 
 def runcmd(cmd):
 
-    process = subprocess.Popen(cmd, 
-                    shell=True,
+    process = subprocess.Popen(cmd.split(" "), 
+                    shell=False,
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT)
     stdout,stderr = process.communicate()

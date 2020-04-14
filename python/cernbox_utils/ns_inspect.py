@@ -46,12 +46,11 @@ class NSInspect:
     def _get_command(self, path):
         eos_machine = self._get_eos_machine(path)
         return "/usr/bin/eos-ns-inspect dump --path %s --members eos%s-qdb:7777 --password-file /keytabs/%s_keytab --no-files --attr-query sys.acl" % (path, eos_machine, eos_machine)
-    #     return "eos-ns-inspect dump --path %s --members %s-qdb:7777 --password-file /tmp/%s_keytab --no-files --attr-query sys.acl" % (path, eos_machine, eos_machine)
 
     def _run_script(self, path):
         eos_command = self._get_command(path)
-        machine_command = "/usr/bin/ssh -oBatchMode=yes -oConnectTimeout=5 -oStrictHostKeyChecking=no -q -l root %s %s" % (self.config['nsinspect-machine'], eos_command)
-        return cernbox_utils.script.runcmd(machine_command,shell=True)
+        # machine_command = "/usr/bin/ssh -oBatchMode=yes -oConnectTimeout=5 -oStrictHostKeyChecking=no -q -l root %s %s" % (self.config['nsinspect-machine'], eos_command)
+        return cernbox_utils.script.runcmd(eos_command.split(" "),shell=False)
 
     def _parse_output(self, output):
         to_return = []
