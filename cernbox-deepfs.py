@@ -52,7 +52,7 @@ class DeepFS:
             print("Failed to send metrics: %s"% ex)
 
 
-    def create_metrics(self, scanned, safe, unsafe, plaindir, skipped, wrongbits):
+    def create_metrics(self, scanned, safe, unsafe, plaindir, skipped, wrongbits, error):
         date = calendar.timegm(datetime.datetime.utcnow().timetuple())
         metrics = [
                 (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'scanned']), (date, scanned)),
@@ -60,7 +60,8 @@ class DeepFS:
                 (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'unsafe']), (date, unsafe)),
                 (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'plaindir']), (date, plaindir)),
                 (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'skipped']), (date, skipped)),
-                (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'wrongbits']), (date, wrongbits))
+                (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'wrongbits']), (date, wrongbits)),
+                (".".join([self.configs['base_metrics_path'], 'deepfsscan', 'error']), (date, error))
             ]
         return metrics
 
@@ -89,6 +90,7 @@ class DeepFS:
         plaindir = 0
         skipped = 0
         wrongbits = 0
+        error = 0
 
         for user in users:
             try:
@@ -101,8 +103,9 @@ class DeepFS:
                 wrongbits += int(_wrongbits)
             except Exception:
                 print("User %s gave no results" % user)
+                error += 1
 
-        return (scanned, safe, unsafe, plaindir, skipped, wrongbits)
+        return (scanned, safe, unsafe, plaindir, skipped, wrongbits, error)
 
     def get_users(self):
 
