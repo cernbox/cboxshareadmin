@@ -66,7 +66,7 @@ class DeepFS:
         return metrics
 
     def scan_user(self, user):
-        machine_command = "%s/cernbox-share verify --deep-fs-check %s" % (self.current_dir, user)
+        machine_command = "%s/cernbox-share verify --deep-fs-check --fix %s" % (self.current_dir, user)
         return_code, output, error = runcmd(machine_command)
 
         line = ""
