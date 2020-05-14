@@ -5,11 +5,19 @@ import pwd
 from .script import get_eos_server_string, get_eos_server
 
 # remove duplicates, preserving order
-def squash(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
+# use the most permissive acl (otherwise EOS picks the first one)
+def squashAcls(acls):
 
+   seen = {}
+
+   for acl in acls:
+      if (acl.entity, acl.name) in seen:
+         if acl.bits != 'rx': #meaning that this acl is at least as permissive (ie rwx+d)
+            seen[(acl.entity, acl.name)] = acl
+      else:
+         seen[(acl.entity, acl.name)] = acl
+
+   return [ seen[key] for key in seen.keys() ]
 
 # convert DB share object inot EOS ACL object
 def share2acl(s):

@@ -1,8 +1,7 @@
-import re
+import re, json
 import cernbox_utils.script
 
 EOSUserRE = '/eos/(user|project)/?([a-z])?/([a-z0-9]+)'
-NSOutput = 'sys.acl=(.*) path=(.*)'
 
 eos_machines = {
         "home" : {
@@ -45,22 +44,21 @@ class NSInspect:
 
     def _get_command(self, path):
         eos_machine = self._get_eos_machine(path)
-        return "/usr/bin/eos-ns-inspect dump --path %s --members eos%s-qdb:7777 --password-file /keytabs/%s_keytab --no-files --attr-query sys.acl" % (path, eos_machine, eos_machine)
+        return "/usr/bin/eos-ns-inspect scan --path %s --members eos%s-qdb:7777 --password-file /keytabs/%s_keytab --no-files --json" % (path, eos_machine, eos_machine)
 
     def _run_script(self, path):
         eos_command = self._get_command(path)
         # machine_command = "/usr/bin/ssh -oBatchMode=yes -oConnectTimeout=5 -oStrictHostKeyChecking=no -q -l root %s %s" % (self.config['nsinspect-machine'], eos_command)
-        return cernbox_utils.script.runcmd(eos_command.split(" "),shell=False)
+        return cernbox_utils.script.runcmd(eos_command.split(" "), echo=False, shell=False)
 
     def _parse_output(self, output):
         to_return = []
-        for line in output.splitlines():
-            line = line.strip()
-            search = re.search(NSOutput, line)
-            if search:
-                acl = search.group(1)
-                path = search.group(2)
-                to_return.append((path, acl))
+
+        folders = json.loads(output)
+        for folder in folders:
+            if 'xattr.sys.acl' not in folder:
+                continue
+            to_return.append((folder['path'], folder['xattr.sys.acl'], folder['cid']))
         return to_return
 
     def inspect(self, path):
