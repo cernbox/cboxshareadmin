@@ -221,7 +221,7 @@ def verify(args,config,eos,db):
 
          cnt_fix_plaindir = 0
 
-         ns = NSInspect(config)
+         ns = NSInspect(config, logger)
 
          for (file, acls, cid) in ns.inspect(homedir):
             cnt += 1

@@ -20,8 +20,9 @@ eos_machines = {
 
 class NSInspect:
 
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.config = config
+        self.logger = logger
 
     def _get_eos_machine(self, path):
         
@@ -57,6 +58,7 @@ class NSInspect:
         folders = json.loads(output)
         for folder in folders:
             if 'xattr.sys.acl' not in folder:
+                self.logger.info("Skipping folder without acl: %s" % folder['path'])
                 continue
             to_return.append((folder['path'], folder['xattr.sys.acl'], folder['cid']))
         return to_return
