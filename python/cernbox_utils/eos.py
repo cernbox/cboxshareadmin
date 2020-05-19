@@ -151,45 +151,29 @@ def test_parse_mline(line):
 # utility functions
 
 import os.path
+import re
+eosKeyPair = r"\b(?!xattrn|xattrv\b)(\S+)=((?:(?!\S+=)\S|\ )+)"
+eosXAttrKeyPair = r"(xattrn=([^=]+) xattrv=([^\ ]*))+" #ignore the values with space... too complicated to make it work and they are not needed
+
 
 def _parse_mline(line):
     """ Parse eos montoring output format (-m).
 
     Return dictionary with keys. Extended attributes are in an embedded dictionary accessible with 'xattr' key.
     """
+    search1 = re.finditer(eosKeyPair, line)
+    search2 = re.finditer(eosXAttrKeyPair, line)
+    
+    d = {}
 
-    try:
-        keylength = int(line.split()[0].split('=')[1])
-    except IndexError:
-        logger.critical("IndexError parsing mline: %s",repr(line))
-        raise ValueError() # Notice: was IndexError before, changed from 'raise' on 14/11/2016
+    for match in search1:
+        d[match.group(1)] = match.group(2).strip()
+    
+    d['xattr'] = {}
+    for match in search2:
+        d['xattr'][match.group(2)] = match.group(3)
         
-    file_marker = " file="
-    pos = line.find(file_marker) + len(file_marker)
-
-    filename = line[pos:pos+keylength]
-
-    attrs = line[pos+keylength:].split()
-
-    d = {'file':os.path.normpath(filename), 'xattr':{}}
-
-    xattrn = None
-    for a in attrs:
-        # FIXED: split() is broken when v contains '=' character, WAS: k,v = a.split('=')
-        i=a.find('=')
-        if i == -1:
-            logger.critical("Error parsing attribute '%s': '=' not found, mline is '%s'",repr(a),repr(line))
-            raise ValueError()
-        k = a[:i]
-        v = a[i+1:]
-        if k == 'xattrn':
-            xattrn = v
-        elif k == 'xattrv':
-            assert(xattrn is not None)
-            d['xattr'][xattrn] = v
-            xattrn = None
-        else:
-            d[k]=v
+    d['file'] = os.path.normpath(d['file'])
     
     fi = EOS.FileInfo(**d)
     fi._names = d.keys()
