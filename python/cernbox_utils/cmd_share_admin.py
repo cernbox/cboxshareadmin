@@ -221,9 +221,9 @@ def verify(args,config,eos,db):
 
          cnt_fix_plaindir = 0
 
-         ns = NSInspect(config)
+         ns = NSInspect(config, logger)
 
-         for (file, acls) in ns.inspect(homedir):
+         for (file, acls, cid) in ns.inspect(homedir):
             cnt += 1
             try:
                eos_acls = eos.parse_sysacl(acls)
@@ -293,9 +293,9 @@ def verify(args,config,eos,db):
                   expected_acls.extend(shared_acls[sp])
                   shared_directory = True
 
-            expected_acls = cernbox_utils.sharing.squash(set(expected_acls))
+            expected_acls = cernbox_utils.sharing.squashAcls(expected_acls)
 
-            logger.debug(" --- SCAN      --- %s --- %s", file, eos.dump_sysacl(eos_acls))
+            logger.debug(" --- SCAN      --- (cid:%s) %s --- %s", cid, file, eos.dump_sysacl(eos_acls))
 
             dryrun = not args.fix
 
@@ -364,7 +364,7 @@ def verify(args,config,eos,db):
 
                logger.error("FIX_ACL%s: %s %s", msg, file, " ".join([a[0]+" "+eos.dump_sysacl(a[1]) for a in actions]))
 
-               eos_to_check.set_sysacl(file,eos_to_check.dump_sysacl(expected_acls),dryrun=dryrun)
+               eos_to_check.set_sysacl('pid:%s'%cid, eos_to_check.dump_sysacl(expected_acls), dryrun=dryrun)
 
             else:
                pass
