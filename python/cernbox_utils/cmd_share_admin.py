@@ -179,6 +179,7 @@ def verify(args,config,eos,db):
          shared_fids.setdefault(fid,[]).append(acl)
 
          p = os.path.normpath(f.file)+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
+         p = p.decode('utf8')
          shared_paths[p] = fid
          shared_acls.setdefault(p,[]).append(acl)
          
