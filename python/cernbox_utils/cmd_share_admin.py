@@ -204,13 +204,18 @@ def verify(args,config,eos,db):
 
          if args.project_name:
             homedir = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
+            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.project_name, 'project'))
+
          elif args.homedir:
-            homedir = args.homedir
+            # homedir = args.homedir
+            raise Exception("Manual path not supported atm")
             
          else:
             homedir = os.path.join(config['eos_prefix'],args.shares_owner[0],args.shares_owner)
-            #homedir = '/eos/project/c/cmsgem-ge11-production'
-            #homedir = '/eos/project/a/atlasweb'
+            eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.shares_owner))
+
+         eos_to_check.role=(0,0)
+         logger.info("Using EOS MGM: %s" % eos_to_check.mgmurl)
 
          cnt = 0
          cnt_fix = 0

@@ -155,45 +155,9 @@ class Data(object):
 
 def get_eos_backend(account, kind="home"):
     
-    global config
-    # We might not be using redis...
-    if not config.get('redis_host') or \
-        not config.get('redis_port') or \
-        not config.get('redis_password'):
-        return ''
-
-    import redis
-
-    logger.debug('getting eos backend for %s', account)
-
-    r = redis.StrictRedis(host=config.get('redis_host'), port=config.get('redis_port'), db=0,
-                          password=config.get('redis_password'))
-
+    # All accounts have been migrated so just use home/project
     letter = account[0]
-
-    if kind == "home":
-        status = r.get('/eos/user/%s/%s' % (letter, account))
-    else:
-        status = r.get('/eos/%s/%s/%s' % (kind, letter, account))
-
-    logger.debug('eos backend status: %s', status)
-
-    if status == 'migrated':
-        return 'eos%s-%s' % (kind, letter)
-
-    elif status == 'not-migrated':
-        return 'old%s' % kind
-
-    elif status == 'ongoing-migration':
-        raise CmdBadRequestError("Ongoing migration")
-
-    else:
-        default = r.get('default-user-not-found')
-
-        if default == 'new-proxy':
-            return 'eos%s-%s' % (kind, letter)
-
-    return 'old%s' % kind
+    return 'eos%s-%s' % (kind, letter)
 
 
 def get_eos_server(user, kind="home"):
