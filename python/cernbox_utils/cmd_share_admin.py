@@ -172,6 +172,12 @@ def verify(args,config,eos,db):
                continue
 
          logger.info("VALID_SHARE: share_id=%s %s->%s %s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target),quote(f.file))
+
+         if s.orphan != 0:
+            logger.error("FIX: SET_NON_ORPHAN %s",s)
+            if args.fix:
+                  db.set_orphan(s.id, orphan=0)
+
          
          # this is the expected ACL entry in the shared directory tree
          acl = cernbox_utils.sharing.share2acl(s)

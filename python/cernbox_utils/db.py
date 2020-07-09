@@ -1,7 +1,7 @@
 import cernbox_utils.script
 
 class ShareInfo(cernbox_utils.script.Data):
-   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send','fileid_prefix']
+   _names = ['id','share_type','share_with','uid_owner','uid_initiator','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send','fileid_prefix','orphan']
 
 
    def _check_consistency(self):
@@ -185,7 +185,7 @@ class ShareDB:
 
 
 
-   def set_orphan(self,id):
+   def set_orphan(self, id, orphan=1):
       """ Set single share represented by id as orphan.
       """
 
@@ -193,7 +193,7 @@ class ShareDB:
       
       logger = cernbox_utils.script.getLogger('db')
 
-      sql="UPDATE oc_share SET orphan=1 WHERE id=%d;"%int(id)
+      sql="UPDATE oc_share SET orphan=%d WHERE id=%d;" % (orphan, int(id))
       
       logger.debug(sql) # FIXME: debug?
       cur.execute(sql)
