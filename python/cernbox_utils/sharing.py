@@ -25,13 +25,13 @@ def share2acl(s):
 
    # this is the expected ACL entry in the shared directory tree
 
-   if is_egroup(s.share_with):
+   if s.share_type == 1:
       acl = eos.AclEntry(name=s.share_with)
    else:
       uid = str(pwd.getpwnam(s.share_with).pw_uid)
       acl = eos.AclEntry(name=uid)
 
-   if is_egroup(s.share_with):
+   if s.share_type == 1:
       acl.entity = "egroup"
    else:
       acl.entity = "u"
