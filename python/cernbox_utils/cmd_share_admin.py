@@ -99,6 +99,9 @@ def verify(args,config,eos,db):
                if args.fix:
                   db.set_orphan(s.id)
                continue
+         except:
+               logger.error("Error analysing share id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+               continue
 
          # share pointing outside of the home directories area
          # we do not validate these spaces later so we do not add these for subsequent verification
