@@ -412,7 +412,8 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
              retobj.append({'path':target_path, 'inode':target_id, 'size':target_size, 'shared_by':nodes[target_id].owner, 'shared_with' : []})
              for s in nodes[target_id].shares:
                 acl = share2acl(s)
-                retobj[-1]['shared_with'].append({'entity':acl.entity,'name':acl.name,'permissions':db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
+                # Use s.share_with to keep the username instead of uid
+                retobj[-1]['shared_with'].append({'entity':acl.entity,'name':s.share_with,'permissions':db2crud(s.permissions),'created':datetime.datetime.fromtimestamp(s.stime).isoformat()})
  
        return retobj
 
