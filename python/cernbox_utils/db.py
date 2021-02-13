@@ -91,6 +91,42 @@ class ShareDB:
          logger.debug("ROW: %s",row)
 
       return shares
+      
+   def get_share_groups(self,groups,orphans=False):
+      """ Get share information matchin target file id AND sharee name AND owner name AND share type ("link" or "regular").
+      """
+      if not groups:
+         return []
+
+      cur = self.db.cursor()
+
+      query = []
+      query.append('SELECT * FROM (SELECT "%s" as groups' % groups[0])
+
+      for group in groups[1:]:
+         query.append('UNION SELECT "%s"' % group)
+      
+      query.append(') as user_groups INNER JOIN oc_share ON oc_share.share_with = user_groups.groups')
+
+      if not orphans: # only include non orphan shares
+         query.append('WHERE (orphan = 0 or orphan IS NULL)')
+
+      logger = cernbox_utils.script.getLogger('db')
+
+      sql = " ".join(query)
+      logger.debug(sql)
+
+      cur.execute(sql)
+
+      shares = []
+      for row in cur.fetchall():
+         s = ShareInfo()
+         for i,name in enumerate(ShareInfo._names):
+            setattr(s,name,row[i])            
+         shares.append(s)
+         logger.debug("ROW: %s",row)
+
+      return shares
 
 #   _names = ['id','share_type','share_with','uid_owner','parent','item_type','item_source','item_target','file_source','file_target','permissions','stime','accepted','expiration','token','mail_send']
 

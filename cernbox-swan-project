@@ -212,6 +212,15 @@ def _cmd_list_shared(args,role,inode):
    groups = []
    # TODO: resolve groups via cboxgroupd
    # curl -i localhost:2002/api/v1/membership/usergroups/moscicki -H "Authorization: Bearer abc"
+   try:
+        import urllib2, json
+        request = urllib2.Request("http://localhost:2002/api/v1/membership/usergroups/%s" % args.user)
+        request.add_header("Authorization", "Bearer abc")   
+        response = urllib2.urlopen(request)
+        groups = json.loads(response.read())
+        logger.debug("got groups %s" % groups)
+   except:
+        pass
 
    retbuf = cernbox_utils.sharing.list_shares(args.user,role,groups,inode,"regular",False,False,db,eos)
 

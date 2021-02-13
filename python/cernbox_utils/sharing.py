@@ -340,8 +340,8 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
     else:
        shares=db.get_share(sharee=user,fid=fid,share_type=share_type)  
 
-       for g in groups:
-           shares.extend(db.get_share(sharee=groups,fid=fid))
+       if groups:
+           shares.extend(db.get_share_groups(groups))
  
     import datetime
     def dtisoformat(x):
@@ -386,6 +386,7 @@ def list_shares(user,role,groups,fid,share_type,flat_list,include_broken,db,eos)
        target_path = None
        nodes = collapse_into_nodes(shares)
        for target_id in nodes:
+          print("NODE >>> %s "%nodes[target_id])
           try:
              if role != "owner":
                 eos_to_check = cernbox_utils.eos.EOS(get_eos_server_string(nodes[target_id].fileid_prefix))
