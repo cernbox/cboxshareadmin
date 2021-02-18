@@ -261,7 +261,7 @@ def compute_acls(fid,eos,db,owner=None):
     for path in sorted(ancestor_nodes):
        ancestor_acl.append(sorted(ancestor_nodes[path].share_acl))
 
-    ancestor_acl = squash(sum(ancestor_acl,[])) # small optimization: remove duplicate entries (preserving order)
+    ancestor_acl = squashAcls(sum(ancestor_acl,[])) # small optimization: remove duplicate entries (preserving order)
 
     logger.debug('ancestor_acl: %s',ancestor_acl)
 
@@ -288,7 +288,7 @@ def compute_acls(fid,eos,db,owner=None):
        acls.extend(sorted(descendant_nodes[path].share_acl))
 
        node = descendant_nodes[path]
-       node.share_acl = squash(acls)
+       node.share_acl = squashAcls(acls)
        
        node_status.append(node) # small optimization: remove duplicate entries (preserving order)
 
