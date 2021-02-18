@@ -248,7 +248,7 @@ def compute_acls(fid,eos,db,owner=None):
           descendant_nodes.setdefault(node.file,node)
           entry_point_is_shared = True
 
-    base_acl = [eos.AclEntry(entity="u",name=owner,bits="rwx!m")] # owner, project egroups, ...
+    base_acl = [eos.AclEntry(entity="u",name=owner,bits="rwx")] # owner, project egroups, ...
 
     ancestor_acl = [base_acl]
 
