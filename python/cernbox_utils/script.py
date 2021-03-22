@@ -182,4 +182,7 @@ def get_eos_server_string(backend):
     if 'newproject' in backend:
         return 'root://%s.cern.ch' % backend.replace('newproject', 'eosproject')
 
+    if 'newuser' in backend:
+        return 'root://%s.cern.ch' % backend.replace('newuser', 'eoshome')
+
     return 'root://%s.cern.ch' % backend
