@@ -97,6 +97,7 @@ def main():
    subcmd.add_argument("--project-name", default="", action='store', help="check project and override home directory")
    subcmd.add_argument("--logdir",default="",action="store",help="log directory")
    subcmd.add_argument("--orphans", default=False, action='store_true', help="check for shares already marked as orphans")
+   subcmd.add_argument("--public-links", default=False, action='store_true', help="Check public links as well (if not, it will only check internal shares)")
    subcmd.add_argument("shares_owner", help="'-' to check all users in the system")
 
    subcmd = subparser.add_parser('remove-orphan-xbits', help="remove xbits which were set in the initial implementation in the parent ACLs")

@@ -39,7 +39,15 @@ def verify(args,config,eos,db):
          fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
          logger.addHandler(fh)
 
-      shares=db.get_share(owner=args.shares_owner,share_type="regular",orphans=args.orphans)
+      share_type="regular"
+      if args.public_links:
+         if args.deep_fs_check:
+            logger.critical("Cannot set deep fs scan with public links option")
+            return
+         # Search for normal shares AND public links
+         share_type=None
+
+      shares=db.get_share(owner=args.shares_owner,share_type=share_type,orphans=args.orphans)
 
       # if needed this can be used to split read from write traffic in order not to overload the instance
 
@@ -110,39 +118,39 @@ def verify(args,config,eos,db):
             #continue
 
          # Verify duplicate shares
+         if s.share_type != 3:
+            unique_key = (fid,s.share_with,s.uid_owner)
 
-         unique_key = (fid,s.share_with,s.uid_owner)
-
-         try:
-            existing_share = unique_share_keys[unique_key]
-          
-            perm1 = cernbox_utils.sharing.share2acl(existing_share).bits # older (shares are sorted by sid which grows in time)
-            perm2 = cernbox_utils.sharing.share2acl(s).bits # newer (current)
+            try:
+               existing_share = unique_share_keys[unique_key]
+            
+               perm1 = cernbox_utils.sharing.share2acl(existing_share).bits # older (shares are sorted by sid which grows in time)
+               perm2 = cernbox_utils.sharing.share2acl(s).bits # newer (current)
 
 
-            logger.error("DUPLICATE_SHARE older_share: id1 %s perm1 %s stime1 %s; newer_share: id2 %d perm2 %s stime2 %s (owner=%s sharee=%s target='%s' fid=%s)",existing_share.id,perm1,existing_share.stime,s.id,perm2,s.stime,s.uid_owner,s.share_with,s.file_target,fid)
+               logger.error("DUPLICATE_SHARE older_share: id1 %s perm1 %s stime1 %s; newer_share: id2 %d perm2 %s stime2 %s (owner=%s sharee=%s target='%s' fid=%s)",existing_share.id,perm1,existing_share.stime,s.id,perm2,s.stime,s.uid_owner,s.share_with,s.file_target,fid)
 
-            assert(perm1 in ['rx','rwx+d']) #we don't understand other permissions
-            assert(perm2 in ['rx','rwx+d']) #we don't understand other permissions
+               assert(perm1 in ['rx','rwx+d']) #we don't understand other permissions
+               assert(perm2 in ['rx','rwx+d']) #we don't understand other permissions
 
-            # here there may be multiple strategies how to fix duplicates
+               # here there may be multiple strategies how to fix duplicates
 
-            # exact duplicates are safe to remove
-            if perm1 == perm2:
-               logger.error("FIX: exact duplicates, will delete older share: %s",existing_share.id)
-               if args.fix:
-                  db.delete_share(existing_share.id)
-                  unique_share_keys[unique_key] = s                  
-            else:
-               logger.error("duplicate share with different permissions, delete manually one of: %s %s",existing_share.id,s.id)
-               disable_deep_check = True
+               # exact duplicates are safe to remove
+               if perm1 == perm2:
+                  logger.error("FIX: exact duplicates, will delete older share: %s",existing_share.id)
+                  if args.fix:
+                     db.delete_share(existing_share.id)
+                     unique_share_keys[unique_key] = s                  
+               else:
+                  logger.error("duplicate share with different permissions, delete manually one of: %s %s",existing_share.id,s.id)
+                  disable_deep_check = True
 
-            continue
+               continue
 
-         except KeyError:
-            unique_share_keys[unique_key] = s
+            except KeyError:
+               unique_share_keys[unique_key] = s
 
-         if s.file_target.count("/")>1:
+         if s.share_type != 3 and s.file_target.count("/")>1:
             logger.error("FILE_TARGET_MULTIPLE_SLASH_PROBLEM id=%d owner=%s sharee=%s target='%s' fid=%s stime=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid,s.stime)
             fixed_target='/%s'%os.path.basename(s.file_target)
             assert("'" not in fixed_target)
@@ -164,6 +172,8 @@ def verify(args,config,eos,db):
 
          if s.share_type == 1:
             logger.info("Share type 1 (egroup). Not checking if destination exists")
+         elif s.share_type == 3:
+            logger.info("Share type 3 (public link). Not checking if destination exists")
          else:
             try:
                pwd.getpwnam(s.share_with)
@@ -181,16 +191,16 @@ def verify(args,config,eos,db):
             if args.fix:
                   db.set_orphan(s.id, orphan=0)
 
-         
-         # this is the expected ACL entry in the shared directory tree
-         acl = cernbox_utils.sharing.share2acl(s)
+         if s.share_type != 3:
+            # this is the expected ACL entry in the shared directory tree
+            acl = cernbox_utils.sharing.share2acl(s)
 
-         shared_fids.setdefault(fid,[]).append(acl)
+            shared_fids.setdefault(fid,[]).append(acl)
 
-         p = os.path.normpath(f.file)+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
-         p = p.decode('utf8')
-         shared_paths[p] = fid
-         shared_acls.setdefault(p,[]).append(acl)
+            p = os.path.normpath(f.file)+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
+            p = p.decode('utf8')
+            shared_paths[p] = fid
+            shared_acls.setdefault(p,[]).append(acl)
          
 
       logger.info("Expected shared paths with visibility to others (%s)",len(shared_acls))
