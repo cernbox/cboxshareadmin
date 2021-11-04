@@ -18,17 +18,23 @@ def verify(args,config,eos,db):
 
       import pwd
 
-      if not args.shares_owner.strip():
-         logger.critical("Must provide a shares_owner or '-'")
-         return
-
-      if args.shares_owner == '-':
+      if args.project_name:
+         logger.info("Analysing an entire project (and all shares). Skipping shares_owner")
          args.shares_owner = ''
+         eos_project_path = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
 
-      if args.deep_fs_check:
-         if not args.shares_owner:
-            logger.critical("Must provide a single shares_owner for --deep-fs-check option")
+      else:
+         if not args.shares_owner.strip():
+            logger.critical("Must provide a shares_owner or '-'")
             return
+
+         if args.shares_owner == '-':
+            args.shares_owner = ''
+
+         if args.deep_fs_check:
+            if not args.shares_owner:
+               logger.critical("Must provide a single shares_owner for --deep-fs-check option")
+               return
 
       if args.logdir:
          import logging
@@ -99,6 +105,12 @@ def verify(args,config,eos,db):
                if args.fix:
                   db.set_orphan(s.id)
                continue
+            
+            if args.project_name:
+               if not f.file.startswith(eos_project_path):
+                  logger.info("NOT_PROJECT_SHARE id=%d owner=%s sharee=%s target='%s' fid=%s, skipping",s.id,s.uid_owner,s.share_with,s.file_target,fid)
+                  continue
+
          except subprocess.CalledProcessError,x:
             if x.returncode == 2:
                # eos entry does not exist
@@ -223,7 +235,7 @@ def verify(args,config,eos,db):
             return
 
          if args.project_name:
-            homedir = os.path.join(config['eos_project_prefix'],args.project_name[0],args.project_name)
+            homedir = eos_project_path
             eos_to_check = cernbox_utils.eos.EOS(get_eos_server(args.project_name, 'project'))
 
          elif args.homedir:
@@ -295,19 +307,20 @@ def verify(args,config,eos,db):
                cnt_skipped += 1
                continue
 
-            # expected ACL
-            uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
-            expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
-
             p = os.path.normpath(file)
 
             if args.project_name:
-               expected_acls += [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
+               expected_acls = [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
                                  eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
 
 
                if p.startswith(os.path.join(homedir,'www')):
                   expected_acls += [eos.AclEntry(entity="u",name='83367',bits='rx')] # uid wwweos
+
+            else:
+               # expected ACL
+               uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
+               expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
             
             p += "/" # add trailing slash to directories, this will make sure that the top-of-shared-directory-tree also matches 
 
