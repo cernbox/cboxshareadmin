@@ -1,0 +1,62 @@
+#!/usr/bin/env python2
+# -*- python -*-
+#
+# The CERNBox Project.
+#
+# Author: 
+# License: AGPL
+#
+#$Id: $
+#
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Perform internal setup of the environment.
+# This is a Copy/Paste logic which must stay in THIS file
+def standardSetup():
+   import sys, os.path
+   # insert the path to cernafs based on the relative position of this scrip inside the service directory tree
+   exeDir = os.path.abspath(os.path.normpath(os.path.dirname(sys.argv[0])))
+   pythonDir = os.path.join(exeDir, 'python' )
+   sys.path.insert(0, pythonDir)
+   import cernbox_utils.setup
+   cernbox_utils.setup.standardSetup(sys.argv[0]) # execute a setup hook
+
+standardSetup()
+del standardSetup
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+config = None
+logger = None
+
+args = None
+
+db = None # DB interface instance
+
+
+import sys
+import cernbox_utils.script
+import cernbox_utils.db
+import cernbox_utils.swan_stats
+
+def main():
+   global config,logger
+
+   parser=cernbox_utils.script.arg_parser(description='Get the number of shares created from SWAN')
+   parser.set_defaults(configfile="/etc/cboxshareadmin.ini")
+
+   global args
+   args = parser.parse_args()
+
+   config = cernbox_utils.script.configure(args.configfile)
+
+   logger = cernbox_utils.script.getLogger(level=args.loglevel)
+
+   logger.info("Using  DB: %s",config['dbhost'])
+
+   global db
+
+   db = cernbox_utils.db.ShareDB()
+   cernbox_utils.swan_stats.get_stats(db)
+
+
+if __name__ == "__main__":
+   sys.exit(main())
