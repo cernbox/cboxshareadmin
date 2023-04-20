@@ -86,6 +86,11 @@ def verify(args,config,eos,db):
       logger.info('Found %d shares of user %s',len(shares),args.shares_owner)
 
       for s in shares:
+
+         if args.project_name and 'project' not in s.fileid_prefix:
+            logger.debug("Skipping share (not a project): %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+            continue
+
          fid = s.item_source
 
          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
