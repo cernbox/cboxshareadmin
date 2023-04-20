@@ -267,7 +267,8 @@ def verify(args,config,eos,db):
 
          # in the rest of this algorithm below we assume that ACL bits belong to a known set
          # modify with care...
-         ALLOWED_ACLS = ['rx','rwx+d','rwx']
+         ## Add 'rxm!dq' so that these are cleaned when fixing. It was a mistake caused by reva, safe to replace
+         ALLOWED_ACLS = ['rx','rwx+d','rwx','rxm!dq', 'rwxm+dq', 'rwx!m', 'rwxm!dq']
 
          def check_allowed(acls, entry):
             for a in acls:
