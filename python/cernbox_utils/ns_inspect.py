@@ -56,6 +56,7 @@ class NSInspect:
         folders = []
         files = []
 
+        output = output.decode('utf-8','ignore').encode("utf-8")
         entries = json.loads(output)
         for entry in entries:
             if 'cid' in entry:
