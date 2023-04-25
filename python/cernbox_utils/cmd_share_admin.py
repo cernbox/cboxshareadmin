@@ -210,7 +210,8 @@ def verify(args,config,eos,db):
             if args.fix:
                   db.set_orphan(s.id, orphan=0)
 
-         if s.share_type != 3:
+         # TODO check guest shares permissions (sys.reva.lwshare.(...)) as well?
+         if s.share_type != 3 and '@' not in s.share_with:
             # this is the expected ACL entry in the shared directory tree
             acl = cernbox_utils.sharing.share2acl(s)
 
