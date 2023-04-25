@@ -191,6 +191,8 @@ def verify(args,config,eos,db):
             logger.info("Share type 1 (egroup). Not checking if destination exists")
          elif s.share_type == 3:
             logger.info("Share type 3 (public link). Not checking if destination exists")
+         elif '@' in s.share_with:
+            logger.info("Share with a guest or OCM account. Not checking if destination exists")
          else:
             try:
                pwd.getpwnam(s.share_with)
