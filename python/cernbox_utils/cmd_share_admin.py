@@ -123,7 +123,7 @@ def verify(args,config,eos,db):
                logger.error("FIX: SET_ORPHAN %s",s)
                if args.fix:
                   db.set_orphan(s.id)
-               continue
+            continue
          except:
                logger.error("Error analysing share id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
                continue
