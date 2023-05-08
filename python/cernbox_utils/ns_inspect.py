@@ -43,25 +43,30 @@ class NSInspect:
 
         return instance
 
-    def _get_command(self, path):
+    def _get_command(self, path, no_files):
         eos_machine = self._get_eos_machine(path)
-        return "/usr/bin/eos-ns-inspect scan --path %s --members eos%s-qdb:7777 --password-file /keytabs/%s_keytab --no-files --json" % (path, eos_machine, eos_machine)
+        return "/usr/bin/eos-ns-inspect scan --path %s --members eos%s-qdb:7777 --password-file /keytabs/%s_keytab --json%s" % (path, eos_machine, eos_machine, " --no-files" if no_files else "")
 
-    def _run_script(self, path):
-        eos_command = self._get_command(path)
+    def _run_script(self, path, no_files):
+        eos_command = self._get_command(path, no_files)
         # machine_command = "/usr/bin/ssh -oBatchMode=yes -oConnectTimeout=5 -oStrictHostKeyChecking=no -q -l root %s %s" % (self.config['nsinspect-machine'], eos_command)
         return cernbox_utils.script.runcmd(eos_command.split(" "), echo=False, shell=False)
 
     def _parse_output(self, output):
-        to_return = []
+        folders = []
+        files = []
 
-        folders = json.loads(output)
-        for folder in folders:
-            if 'xattr.sys.acl' not in folder:
-                self.logger.info("Skipping folder without acl: %s" % folder['path'])
-                continue
-            to_return.append((folder['path'], folder['xattr.sys.acl'], folder['cid']))
-        return to_return
+        output = output.decode('utf-8','ignore').encode("utf-8")
+        entries = json.loads(output)
+        for entry in entries:
+            if 'cid' in entry:
+                folders.append((entry['path'], entry['xattr.sys.acl'] if 'xattr.sys.acl' in entry else "", entry['cid']))
+            elif 'fid' in entry:
+                files.append((entry['path'], entry['xattr.sys.acl'] if 'xattr.sys.acl' in entry else "", entry['fid']))
+            else:
+                self.logger.info("Skipping path without known type: %s" % entry['path'])
 
-    def inspect(self, path):
-        return self._parse_output(self._run_script(path)[1])
+        return folders, files
+
+    def inspect(self, path, no_files):
+        return self._parse_output(self._run_script(path, no_files)[1])

@@ -86,6 +86,11 @@ def verify(args,config,eos,db):
       logger.info('Found %d shares of user %s',len(shares),args.shares_owner)
 
       for s in shares:
+
+         if args.project_name and 'project' not in s.fileid_prefix:
+            logger.debug("Skipping share (not a project): %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
+            continue
+
          fid = s.item_source
 
          logger.debug("Processing share: %s %s->%s %s %s",s.id,s.uid_owner,s.share_with,s.item_source,quote(s.file_target))
@@ -118,7 +123,7 @@ def verify(args,config,eos,db):
                logger.error("FIX: SET_ORPHAN %s",s)
                if args.fix:
                   db.set_orphan(s.id)
-               continue
+            continue
          except:
                logger.error("Error analysing share id=%d owner=%s sharee=%s target='%s' fid=%s",s.id,s.uid_owner,s.share_with,s.file_target,fid)
                continue
@@ -186,6 +191,8 @@ def verify(args,config,eos,db):
             logger.info("Share type 1 (egroup). Not checking if destination exists")
          elif s.share_type == 3:
             logger.info("Share type 3 (public link). Not checking if destination exists")
+         elif '@' in s.share_with:
+            logger.info("Share with a guest or OCM account. Not checking if destination exists")
          else:
             try:
                pwd.getpwnam(s.share_with)
@@ -203,14 +210,21 @@ def verify(args,config,eos,db):
             if args.fix:
                   db.set_orphan(s.id, orphan=0)
 
-         if s.share_type != 3:
+         # TODO check guest shares permissions (sys.reva.lwshare.(...)) as well?
+         if s.share_type != 3 and '@' not in s.share_with:
             # this is the expected ACL entry in the shared directory tree
             acl = cernbox_utils.sharing.share2acl(s)
 
             shared_fids.setdefault(fid,[]).append(acl)
 
-            p = os.path.normpath(f.file)+"/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
+            p = os.path.normpath(f.file)
             p = p.decode('utf8')
+
+            if s.item_type == "file":
+               p = p.replace('.sys.v#.', '')
+               logger.info("SINGLE_FILE_SHARE share_id=%s path=%s", s.id, p)
+            else:
+               p += "/" # append trailing slash, otherwise directories which basename is a substring give false positive, e.g.: /eos/user/k/kuba/tmp.readonly /eos/user/k/kuba/tmp
             shared_paths[p] = fid
             shared_acls.setdefault(p,[]).append(acl)
          
@@ -258,158 +272,209 @@ def verify(args,config,eos,db):
 
          cnt_fix_plaindir = 0
 
-         ns = NSInspect(config, logger)
 
-         for (file, acls, cid) in ns.inspect(homedir):
+         # in the rest of this algorithm below we assume that ACL bits belong to a known set
+         # modify with care...
+         ## Add 'rxm!dq' so that these are cleaned when fixing. It was a mistake caused by reva, safe to replace
+         ALLOWED_ACLS = ['rx','rwx+d','rwx','rxm!dq', 'rwxm+dq', 'rwx!m', 'rwxm!dq']
+
+         def check_allowed(acls, entry):
+            for a in acls:
+               if not a.bits in ALLOWED_ACLS:
+                  logger.fatal("ACL bits not allowed: %s %s %s",a, entry, eos.dump_sysacl(acls))
+                  return False
+            return True
+         
+         def is_blacklisted(path):
+            for black_p in blacklist_paths:
+               if path.startswith(black_p):
+                  return True
+            return False
+
+
+         ns = NSInspect(config, logger)
+         folders, files = ns.inspect(homedir, not args.with_files)
+         
+         ## FOLDERS
+         for (folder, acls, cid) in folders:
             cnt += 1
             try:
                eos_acls = eos.parse_sysacl(acls)
 
-               # in the rest of this algorithm below we assume that ACL bits belong to a known set
-               # modify with care...
-               ALLOWED_ACLS = ['rx','rwx+d','rwx']
-
-               def check_allowed():
-                  for a in eos_acls:
-                     if not a.bits in ALLOWED_ACLS:
-                        logger.fatal("ACL bits not allowed: %s %s %s",a, file, eos.dump_sysacl(eos_acls))
-                        return False
-                  return True
-
-               if not check_allowed():
+               if not check_allowed(eos_acls, folder):
                   cnt_wrong_bits += 1
                   cnt_skipped += 1
                   continue
 
-               if is_special_folder(file):
-                  logger.error("Special folder should not have sys.acl set: %s",file)
-                  # FIXME: remove ACL from special folder?
-                  cnt_skipped += 1
-                  continue
-            except KeyError,x:
-               if is_special_folder(file):
-                  continue # skip this entry, it is okey for special folders not to have ACL at all
-               else:
-                  eos_acls = [] # no ACLs defined for this directory
+               if is_special_folder(folder):
+                  logger.error("Special folder should not have sys.acl set: %s",folder)
+
+            except:
+               eos_acls = [] # no ACLs defined for this directory
 
 
             # FIX: u:wwweos:rx
 
             # BLACKLIST FUNCTIONALITY
             # do not touch anything in blacklisted paths: we may not know what to do with them (yet)
-            def is_blacklisted(path):
-               for black_p in blacklist_paths:
-                  if file.startswith(black_p):
-                     return True
-               return False
+            if is_blacklisted(folder):
+               cnt_skipped += 1
+               continue
 
-            if is_blacklisted(file):
+            p = os.path.normpath(folder)
+            shared_directory = False # indicate if the current directory is shared
+
+            if is_special_folder(folder):
+               expected_acls = []
+            else:
+               if args.project_name:
+                  expected_acls = [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
+                                    eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
+
+
+                  if p.startswith(os.path.join(homedir,'www')):
+                     expected_acls += [eos.AclEntry(entity="u",name='83367',bits='rx')] # uid wwweos
+
+               else:
+                  # expected ACL
+                  uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
+                  expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
+               
+               p += "/" # add trailing slash to directories, this will make sure that the top-of-shared-directory-tree also matches 
+
+
+               for sp in shared_paths:
+                  if p.startswith(sp): # directory is part of a share tree which has a top at sp
+                     expected_acls.extend(shared_acls[sp])
+                     shared_directory = True
+
+               expected_acls = cernbox_utils.sharing.squashAcls(expected_acls)
+
+            logger.debug(" --- SCAN      --- (cid:%s) %s --- %s", cid, folder, eos.dump_sysacl(eos_acls))
+
+            a, b, c, d = perform_action_analysis('pid:%s'%cid, eos_to_check, eos_acls, expected_acls, shared_directory, folder, eos, args)
+            cnt_fix += a
+            cnt_fix_plaindir += b
+            cnt_safe_fix += c
+            cnt_unsafe_fix += d
+
+
+         ## FILES
+         for (file, acls, fid) in files:
+            cnt += 1
+
+            try:
+               eos_acls = eos.parse_sysacl(acls)
+
+               if not check_allowed(eos_acls, file):
+                  cnt_wrong_bits += 1
+                  cnt_skipped += 1
+                  continue
+            except:
+               eos_acls = [] # no ACLs defined for this file
+
+            # BLACKLIST FUNCTIONALITY
+            # do not touch anything in blacklisted paths: we may not know what to do with them (yet)
+            if is_blacklisted(folder):
                cnt_skipped += 1
                continue
 
             p = os.path.normpath(file)
 
-            if args.project_name:
-               expected_acls = [eos.AclEntry(entity="egroup",name='cernbox-project-%s-writers'%args.project_name, bits="rwx+d"),
-                                 eos.AclEntry(entity="egroup",name='cernbox-project-%s-readers'%args.project_name, bits="rx")]
-
-
-               if p.startswith(os.path.join(homedir,'www')):
-                  expected_acls += [eos.AclEntry(entity="u",name='83367',bits='rx')] # uid wwweos
-
-            else:
-               # expected ACL
-               uid = str(pwd.getpwnam(args.shares_owner).pw_uid)
-               expected_acls = [eos.AclEntry(entity="u",name=uid,bits="rwx")] # this acl entry should be always set for every directory in homedir
-            
-            p += "/" # add trailing slash to directories, this will make sure that the top-of-shared-directory-tree also matches 
-
-            shared_directory = False # indicate if the current directory is shared
-
+            expected_acls = []
+            shared_file = False
             for sp in shared_paths:
-               if p.startswith(sp): # directory is part of a share tree which has a top at sp
+               if p == sp: 
                   expected_acls.extend(shared_acls[sp])
-                  shared_directory = True
+                  shared_file = True
 
             expected_acls = cernbox_utils.sharing.squashAcls(expected_acls)
 
-            logger.debug(" --- SCAN      --- (cid:%s) %s --- %s", cid, file, eos.dump_sysacl(eos_acls))
+            logger.debug(" --- SCAN      --- (fid:%s) %s --- %s", fid, file, eos.dump_sysacl(eos_acls))
 
-            dryrun = not args.fix
-
-            actions = []
-            safe_fix = None # determines if it is "safe" to fix the ACLs (not taking away existing permissions)
-
-            if set(eos_acls) < set(expected_acls):
-               actions.append(("ADD",set(expected_acls)-set(eos_acls)))
-               safe_fix = True
-            elif set(eos_acls) > set(expected_acls):
-               actions.append(("REMOVE",set(eos_acls)-set(expected_acls)))
-               safe_fix = False
-            elif set(eos_acls) != set(expected_acls):
-                  if not args.fix_all_perms:
-                     dryrun = True # do not fix anything like that (unless explicitly specified: --fix-all-perms)
-
-                  safe_fix = False
-
-                  # let's be a bit more specific about the differences
-
-                  added_acls = set(expected_acls)-set(eos_acls)
-                  removed_acls = set(eos_acls)-set(expected_acls)
-
-                  updated_acls = set()
-
-                  def find_acl_by_entity_name(entity,name,acl_list):
-                     for a in acl_list:
-                        if a.entity == entity and a.name == name:
-                           return a
-                     return None
-
-                  for acl1 in removed_acls.copy(): # we may remove from removed_acls set as we iterate over it
-
-                     acl2 = find_acl_by_entity_name(acl1.entity,acl1.name,added_acls)
-
-                     if acl2:
-
-                        if 'rx' in acl1.bits:
-                           safe_fix = True
-
-                        updated_acls.add(eos.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
-                        removed_acls.remove(acl1)
-                        added_acls.remove(acl2)
+            a, b, c, d = perform_action_analysis('fid:%s'%fid, eos_to_check, eos_acls, expected_acls, shared_file, file, eos, args)
+            cnt_fix += a
+            cnt_fix_plaindir += b
+            cnt_safe_fix += c
+            cnt_unsafe_fix += d
 
 
-                  if added_acls:
-                     actions.append(("ADD",added_acls))
-                  if removed_acls:
-                     actions.append(("REMOVE",removed_acls))
-                  if updated_acls:
-                     actions.append(("UPDATE",updated_acls))
-                  
-            if actions:
-
-               cnt_fix += 1
-
-               if not shared_directory:
-                  cnt_fix_plaindir += 1
-
-               if safe_fix:
-                  msg = "_SAFE"
-                  cnt_safe_fix +=1
-               else:
-                  msg = ""
-                  cnt_unsafe_fix +=1
-
-               logger.error("FIX_ACL%s: %s %s", msg, file, " ".join([a[0]+" "+eos.dump_sysacl(a[1]) for a in actions]))
-
-               eos_to_check.set_sysacl('pid:%s'%cid, eos_to_check.dump_sysacl(expected_acls), dryrun=dryrun)
-
-            else:
-               pass
-
-         logger.critical("Overview for user %s : scanned %d directories, safe fix: %d unsafe fix: %d plaindir fix: %d skipped: %d wrong bits: %d",args.shares_owner,cnt,cnt_safe_fix,cnt_unsafe_fix,cnt_fix_plaindir,cnt_skipped,cnt_wrong_bits)
+         logger.critical("Overview for user %s : scanned %d directories/files, safe fix: %d unsafe fix: %d plaindir fix: %d skipped: %d wrong bits: %d",args.shares_owner,cnt,cnt_safe_fix,cnt_unsafe_fix,cnt_fix_plaindir,cnt_skipped,cnt_wrong_bits)
             
       return 
+
+def perform_action_analysis(id, eos_to_check, eos_acls, expected_acls, shared_directory, path, eos, args):
+
+      dryrun = not args.fix
+      actions = []
+      safe_fix = None # determines if it is "safe" to fix the ACLs (not taking away existing permissions)
+      cnt_fix, cnt_fix_plaindir, cnt_safe_fix, cnt_unsafe_fix = 0, 0, 0, 0
+
+      if set(eos_acls) < set(expected_acls):
+         actions.append(("ADD",set(expected_acls)-set(eos_acls)))
+         safe_fix = True
+      elif set(eos_acls) > set(expected_acls):
+         actions.append(("REMOVE",set(eos_acls)-set(expected_acls)))
+         safe_fix = False
+      elif set(eos_acls) != set(expected_acls):
+            if not args.fix_all_perms:
+               dryrun = True # do not fix anything like that (unless explicitly specified: --fix-all-perms)
+
+            safe_fix = False
+
+            # let's be a bit more specific about the differences
+
+            added_acls = set(expected_acls)-set(eos_acls)
+            removed_acls = set(eos_acls)-set(expected_acls)
+
+            updated_acls = set()
+
+            def find_acl_by_entity_name(entity,name,acl_list):
+               for a in acl_list:
+                  if a.entity == entity and a.name == name:
+                     return a
+               return None
+
+            for acl1 in removed_acls.copy(): # we may remove from removed_acls set as we iterate over it
+
+               acl2 = find_acl_by_entity_name(acl1.entity,acl1.name,added_acls)
+
+               if acl2:
+
+                  if 'rx' in acl1.bits:
+                     safe_fix = True
+
+                  updated_acls.add(eos.AclEntry(entity=acl1.entity,name=acl1.name,bits=acl1.bits+"->"+acl2.bits))
+                  removed_acls.remove(acl1)
+                  added_acls.remove(acl2)
+
+
+            if added_acls:
+               actions.append(("ADD",added_acls))
+            if removed_acls:
+               actions.append(("REMOVE",removed_acls))
+            if updated_acls:
+               actions.append(("UPDATE",updated_acls))
+            
+      if actions:
+
+         cnt_fix += 1
+
+         if not shared_directory:
+            cnt_fix_plaindir += 1
+
+         if safe_fix:
+            msg = "_SAFE"
+            cnt_safe_fix +=1
+         else:
+            msg = ""
+            cnt_unsafe_fix +=1
+
+         logger.error("FIX_ACL%s: %s %s", msg, path, " ".join([a[0]+" "+eos.dump_sysacl(a[1]) for a in actions]))
+
+         eos_to_check.set_sysacl(id, eos_to_check.dump_sysacl(expected_acls), dryrun=dryrun)
+
+      return cnt_fix, cnt_fix_plaindir, cnt_safe_fix, cnt_unsafe_fix
 
 def remove_orphan_xbits(args,config,eos,db):
       logfn = ""

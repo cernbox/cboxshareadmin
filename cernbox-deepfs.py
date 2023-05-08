@@ -22,7 +22,7 @@ from socket import (
 ldap_base = 'OU=Users,OU=Organic Units,DC=cern,DC=ch'
 ldap_query = "(memberof:1.2.840.113556.1.4.1941:=cn=%s,OU=e-groups,OU=Workgroups,DC=cern,DC=ch)"
 
-deep_fs_output = "Overview for user (.*) : scanned (.*) directories, safe fix: (.*) unsafe fix: (.*) plaindir fix: (.*) skipped: (.*) wrong bits: (.*)"
+deep_fs_output = "Overview for user (.*) : scanned (.*) directories/files, safe fix: (.*) unsafe fix: (.*) plaindir fix: (.*) skipped: (.*) wrong bits: (.*)"
 
 
 class DeepFS:

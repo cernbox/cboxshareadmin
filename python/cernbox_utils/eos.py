@@ -102,7 +102,10 @@ class EOS:
         return self.__set_sysacl(path,acl,role,dryrun,'')
 
     def __set_sysacl(self,path,acl,role,dryrun,opt):
-        eos = self._eoscmd("attr",opt,"set","sys.acl=%s"%acl,path,role=role)
+        if acl:
+            eos = self._eoscmd("attr",opt,"set","sys.acl=%s"%acl,path,role=role)
+        else:
+            eos = self._eoscmd("attr",opt,"rm","sys.acl",path,role=role)
         if dryrun:
             logger.warning("would run: %s",eos)
         else:
